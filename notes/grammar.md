@@ -11,7 +11,7 @@ _fn_stmt_: 'fn' **_identifier_** (**_generic_**)? '(' (**_maybe_typed_identifier
 
 _if_stmt_: 'if' **_expr_** **_block_stmt_** ('else' **_block_stmt_**)?
 
-_block_stmt_: '{' (**_stmt_**)* '}'
+_block_stmt_: `{` (**_stmt_**)* `}`
 
 _let_stmt_: 'let' **_identifier_** (**_type_provision_**)? '=' **_expr_**
 
@@ -25,7 +25,7 @@ _struct_stmt_: 'struct' **_identifier_** (**_generic_**)? '{' (**_struct_member_
 
 _struct_member_: **_identifier_** ':' **_maybe_typed_identifier_**
 
-_type_provision_: ':' **_identifier_**
+_type_provision_: ':' **_maybe_typed_identifier_**
 
 _generic_: '<' **_maybe_typed_identifier_** '>'
 
