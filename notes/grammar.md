@@ -1,25 +1,17 @@
 # Grammar
 
-`program`: `expr` | `stmt`
+_program_: _expr_ | _stmt_
 
-`stmt`: `fn_stmt`
+_stmt_: _fn_stmt_
 
-`fn_stmt`:
+_fn_stmt_:
 
-`expr`: `logical_or`
-
-`logical_or`: `logical_and` ("||" `logical_and`)*
-
-`logical_and`: `equality` ("&&" `equality`)*
-
-`equality`: `relational` (("==" | "!=") `relational`)*
-
-`relational`: `additive` (("<" | ">" | "<=" | ">=") `additive`)*
-
-`additive`: `multiplicative` (("+" | "-") `multiplicative`)*
-
-`multiplicative`:   `grouping` (("**" | "/") `grouping`)*
-
-`grouping`: `unary` | (`expr`)
-
-`unary`: ("!" | "-") `expr`
+_expr_: _logical_or_
+_logical_or_: _logical_and_ ("||" _logical_and_)*
+_logical_and_: _equality_ ("&&" _equality_)*
+_equality_: _relational_ (("==" | "!=") _relational_)*
+_relational_: _additive_ (("<" | ">" | "<=" | ">=") _additive)_*
+_additive_: _multiplicative_ (("+" | "-") _multiplicative_)*
+_multiplicative_: _grouping_ (("**" | "/") _grouping_)*
+_grouping_: _unary_ | (_expr_)
+_unary_: ("!" | "-") _expr_
