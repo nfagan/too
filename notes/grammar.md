@@ -1,7 +1,7 @@
 # Grammar
 
 
-_program_: **_expr_**, (**_stmt_**)*
+_program_: (**_stmt_**)*
 
 ---
 
@@ -47,8 +47,8 @@ _additive_: **_multiplicative_** (('+', '-') **_multiplicative_**)*
 
 _multiplicative_: **_grouping_** (('**', '/') **_grouping_**)*
 
-_grouping_: **_unary_**, '(' **_expr_** ')'
+_grouping_: **_unary_**, **_term_**, '(' **_expr_** ')'
 
-_unary_: ('!', '-') **_term_**, **_expr_**
+_unary_: ('!', '-') **_expr_**
 
 _term_: **_identifier_**, **_literal_**
