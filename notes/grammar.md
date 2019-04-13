@@ -1,56 +1,56 @@
 # Grammar
 
 
-_program_: (**_stmt_**)*
+program: (**_stmt_**)*
 
 ---
 
-_stmt_: **_fn_stmt_**, **_if_stmt_**, **_let_stmt_**, **_return_stmt_**, **_struct_stmt_**, **_assign_stmt_**
+stmt: **_fn_stmt_**, **_if_stmt_**, **_let_stmt_**, **_return_stmt_**, **_struct_stmt_**, **_assign_stmt_**
 
-_fn_stmt_: `fn` **_identifier_** (**_generic_**)? `(` (**_maybe_typed_identifier_**)* `)` `->` **_maybe_typed_identifier_** **_block_stmt_**
+fn_stmt: `fn` **_identifier_** (**_generic_**)? `(` (**_maybe_typed_identifier_**)* `)` `->` **_maybe_typed_identifier_** **_block_stmt_**
 
-_if_stmt_: `if` **_expr_** **_block_stmt_** (`else` **_block_stmt_**)?
+if_stmt: `if` **_expr_** **_block_stmt_** (`else` **_block_stmt_**)?
 
-_block_stmt_: `{` (**_stmt_**)* `}`
+block_stmt: `{` (**_stmt_**)* `}`
 
-_let_stmt_: `let` **_identifier_** (**_type_provision_**)? `=` **_expr_**
+let_stmt: `let` **_identifier_** (**_type_provision_**)? `=` **_expr_**
 
-_assign_stmt_: **_identifier_** `=` **_expr_**
+assign_stmt: **_identifier_** `=` **_expr_**
 
-_return_stmt_: `return` **_expr_**
+return_stmt: `return` **_expr_**
 
-_struct_stmt_: `struct` **_identifier_** (**_generic_**)? `{` (**_struct_member_**)* `}`
-
----
-
-_struct_member_: **_identifier_** `:` **_maybe_typed_identifier_**
-
-_type_provision_: `:` **_maybe_typed_identifier_**
-
-_generic_: `<` **_maybe_typed_identifier_** `>`
-
-_maybe_typed_identifier_: **_identifier_** (`<` (**_maybe_typed_identifier_**)+ `>`)?
+struct_stmt: `struct` **_identifier_** (**_generic_**)? `{` (**_struct_member_**)* `}`
 
 ---
 
-_expr_: **_logical_or_**
+struct_member: **_identifier_** `:` **_maybe_typed_identifier_**
 
-_logical_or_: **_logical_and_** (`||` **_logical_and_**)*
+type_provision: `:` **_maybe_typed_identifier_**
 
-_logical_and_: **_equality_** (`&&` **_equality_**)*
+generic: `<` **_maybe_typed_identifier_** `>`
 
-_equality_: **_relational_** ((`==`, `!=`) **_relational_**)*
+maybe_typed_identifier: **_identifier_** (`<` (**_maybe_typed_identifier_**)+ `>`)?
 
-_relational_: **_additive_** ((`<`, `>`, `<=`, `>=`) **_additive_**)*
+---
 
-_additive_: **_multiplicative_** ((`+`, `-`) **_multiplicative_**)*
+expr: **_logical_or_**
 
-_multiplicative_: **_function_call_** ((`**`, `/`) **_function_call_**)*
+logical_or: **_logical_and_** (`||` **_logical_and_**)*
 
-_function_call_: **_grouping_**, (**_identifier_**)? `(` (**_expr_**)* `)`
+logical_and: **_equality_** (`&&` **_equality_**)*
 
-_grouping_: **_unary_**, **_terminal_**, `(` **_expr_** `)`
+equality: **_relational_** ((`==`, `!=`) **_relational_**)*
 
-_unary_: (`!`, `-`) **_expr_**
+relational: **_additive_** ((`<`, `>`, `<=`, `>=`) **_additive_**)*
 
-_terminal_: **_identifier_**, **_literal_**
+additive: **_multiplicative_** ((`+`, `-`) **_multiplicative_**)*
+
+multiplicative: **_function_call_** ((`**`, `/`) **_function_call_**)*
+
+function_call: **_grouping_**, (**_identifier_**)? `(` (**_expr_**)* `)`
+
+grouping: **_unary_**, **_terminal_**, `(` **_expr_** `)`
+
+unary: (`!`, `-`) **_expr_**
+
+terminal: **_identifier_**, **_literal_**
