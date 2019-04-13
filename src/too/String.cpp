@@ -26,3 +26,7 @@ bool too::is_ascii_digit(too::Character c) {
 bool too::is_ascii_alpha(Character c) {
   return c.is_ascii() && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 }
+
+bool too::is_ascii_alpha_numeric(Character c) {
+  return is_ascii_alpha(c) || is_ascii_digit(c);
+}

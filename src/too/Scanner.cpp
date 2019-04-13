@@ -28,7 +28,7 @@ std::ostream& operator<<(std::ostream& os, const too::ScanErrorType& type) {
 BEGIN_NAMESPACE
 
 namespace {
-  static std::map<char, TokenType> SINGLE_CHAR_TO_TOKEN_TYPE_MAP{
+  static std::map<char, TokenType> SINGLE_CHAR_TO_TOKEN_TYPE{
     {'+', TokenType::PLUS},
     {'-', TokenType::MINUS},
     {'!', TokenType::BANG},
@@ -36,22 +36,27 @@ namespace {
     {')', TokenType::RIGHT_PARENS},
     {'{', TokenType::LEFT_BRACE},
     {'}', TokenType::RIGHT_BRACE},
+    {'[', TokenType::LEFT_BRACKET},
+    {']', TokenType::RIGHT_BRACKET},
     {'<', TokenType::LESS},
     {'>', TokenType::GREATER},
     {'*', TokenType::STAR},
     {'/', TokenType::FORWARD_SLASH},
     {':', TokenType::COLON},
+    {',', TokenType::COMMA},
+    {'.', TokenType::PERIOD},
     {'=', TokenType::EQUAL}
   };
   
-  static std::map<char, TokenType> SINGLE_CHAR_WITH_EQUAL_TO_TOKEN_TYPE_MAP{
+  static std::map<char, TokenType> COMPOUND_PUNCTUATION_START_TO_TOKEN_TYPE{
     {'!', TokenType::BANG_EQUAL},
     {'<', TokenType::LESS_EQUAL},
     {'>', TokenType::GREATER_EQUAL},
     {'=', TokenType::EQUAL_EQUAL},
+    {'-', TokenType::LEFT_ARROW}
   };
   
-  static std::map<StringView, TokenType> KEYWORD_TO_TOKEN_TYPE_MAP{
+  static std::map<StringView, TokenType> KEYWORD_TO_TOKEN_TYPE{
     {"fn", TokenType::FN},
     {"return", TokenType::RETURN},
     {"where", TokenType::WHERE},
@@ -61,39 +66,40 @@ namespace {
     {"impl", TokenType::IMPL},
     {"trait", TokenType::TRAIT},
     {"in", TokenType::IN},
-    {"struct", TokenType::STRUCT}
+    {"struct", TokenType::STRUCT},
+    {"let", TokenType::LET}
   };
 }
 
 inline bool is_recognized_single_character(Character c) {
-  return c.is_ascii() && SINGLE_CHAR_TO_TOKEN_TYPE_MAP.count(c.char_at(0)) > 0;
+  return c.is_ascii() && SINGLE_CHAR_TO_TOKEN_TYPE.count(char(c)) > 0;
 }
 
-inline bool is_recognized_single_character_with_equal(Character c) {
-  return c.is_ascii() && SINGLE_CHAR_WITH_EQUAL_TO_TOKEN_TYPE_MAP.count(c.char_at(0)) > 0;
+inline bool is_recognized_compound_punctuation_start(Character c) {
+  return c.is_ascii() && COMPOUND_PUNCTUATION_START_TO_TOKEN_TYPE.count(char(c)) > 0;
 }
 
 inline bool is_recognized_keyword(StringView view) {
-  return KEYWORD_TO_TOKEN_TYPE_MAP.count(view) > 0;
+  return KEYWORD_TO_TOKEN_TYPE.count(view) > 0;
 }
 
 inline TokenType get_single_character_token_type(Character c) {
-  return SINGLE_CHAR_TO_TOKEN_TYPE_MAP.at(c.char_at(0));
+  return SINGLE_CHAR_TO_TOKEN_TYPE.at(char(c));
 }
 
 inline TokenType get_single_character_with_equal_token_type(Character c) {
-  return SINGLE_CHAR_WITH_EQUAL_TO_TOKEN_TYPE_MAP.at(c.char_at(0));
+  return COMPOUND_PUNCTUATION_START_TO_TOKEN_TYPE.at(char(c));
 }
 
 inline TokenType get_keyword_token_type(StringView view) {
-  return KEYWORD_TO_TOKEN_TYPE_MAP.at(view);
+  return KEYWORD_TO_TOKEN_TYPE.at(view);
 }
 
-inline int64_t current_index(const CharacterIterator& iterator, const Character& last_char) {
+inline int64_t current_index(const CharacterIterator& iterator, Character last_char) {
   return iterator.next_index() - last_char.count_units();
 }
 
-inline Token make_token(const CharacterIterator& iterator, const Character& last_char, TokenType type, int64_t len) {
+inline Token make_token(const CharacterIterator& iterator, Character last_char, TokenType type, int64_t len) {
   return Token{type, make_string_view(iterator.data(), current_index(iterator, last_char), len)};
 }
 
@@ -101,14 +107,14 @@ inline Token make_token(const CharacterIterator& iterator, TokenType type, int64
   return Token{type, make_string_view(iterator.data(), start, len)};
 }
 
-inline ScanError make_unrecognized_symbol_error(CharacterIterator& iterator, const Character& last_char) {
+inline ScanError make_unrecognized_symbol_error(CharacterIterator& iterator, Character last_char) {
   const int64_t begin = current_index(iterator, last_char);
   const int64_t end = begin + 1;
   
   return {ScanErrorType::UNRECOGNIZED_SYMBOL, begin, end};
 }
 
-inline void mark_new_line(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
+inline void mark_new_line(CharacterIterator& iterator, ScanResult& result, Character last_char) {
   result.new_line_indices.push_back(current_index(iterator, last_char));
 }
 
@@ -136,7 +142,7 @@ inline int64_t consume_digits(CharacterIterator& iterator, bool* ended_on_decima
   return n_digits;
 }
 
-Token number_literal(CharacterIterator& iterator, const Character& last_char) {
+void number_literal(CharacterIterator& iterator, ScanResult& result, Character last_char) {
   int64_t number_str_len = 1;
   int64_t number_start = current_index(iterator, last_char);
   
@@ -148,10 +154,10 @@ Token number_literal(CharacterIterator& iterator, const Character& last_char) {
     number_str_len += (consume_digits(iterator, &ended_on_decimal) + 1);
   }
   
-  return make_token(iterator, TokenType::NUMBER_LITERAL, number_start, number_str_len);
+  result.tokens.push_back(make_token(iterator, TokenType::NUMBER_LITERAL, number_start, number_str_len));
 }
 
-void string_literal(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
+void string_literal(CharacterIterator& iterator, ScanResult& result, Character last_char) {
   int64_t n_bytes = 0;
   int64_t str_start = iterator.next_index();
   
@@ -184,14 +190,14 @@ void string_literal(CharacterIterator& iterator, ScanResult& result, const Chara
   }
 }
 
-void identifier(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
+void identifier(CharacterIterator& iterator, ScanResult& result, Character last_char) {
   const int64_t begin = current_index(iterator, last_char);
   int64_t identifier_str_len = 1;
   
   while (iterator.has_next()) {
     auto c = iterator.peek();
     
-    if (!is_ascii_alpha(c) && c != '_') {
+    if (!is_ascii_alpha_numeric(c) && c != '_') {
       break;
     }
     
@@ -209,10 +215,27 @@ void identifier(CharacterIterator& iterator, ScanResult& result, const Character
   result.tokens.push_back(make_token(iterator, token_type, begin, identifier_str_len));
 }
 
-void punctuation(CharacterIterator& iterator, ScanResult& result, const Character& c) {
+bool is_compound_punctuation(const CharacterIterator& iterator, Character last_char) {
+  auto next_char = iterator.peek();
+  
+  //  compound punctuation: !=, ==, ->, etc.
+  if ((next_char != '=' && next_char != '>') || !is_recognized_compound_punctuation_start(last_char)) {
+    return false;
+  }
+  
+  if (next_char == '>' && last_char != '-') {
+    return false;
+  } else if (next_char == '=' && last_char == '-') {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+void punctuation(CharacterIterator& iterator, ScanResult& result, Character c) {
   auto token_type = get_single_character_token_type(c);
   int64_t n_characters = 1;
-  bool is_compound_punct = iterator.peek() == '=' && is_recognized_single_character_with_equal(c);
+  bool is_compound_punct = is_compound_punctuation(iterator, c);
   
   if (is_compound_punct) {
     token_type = get_single_character_with_equal_token_type(c);
@@ -226,6 +249,18 @@ void punctuation(CharacterIterator& iterator, ScanResult& result, const Characte
   }
 }
 
+void comment(CharacterIterator& iterator, ScanResult& result, Character last_char) {
+  while (iterator.has_next()) {
+    auto c = iterator.peek();
+    
+    if (c == '\n') {
+      break;
+    }
+    
+    iterator.advance();
+  }
+}
+
 inline void each_scan_iteration(CharacterIterator& iterator, ScanResult& result) {
   auto c = iterator.advance();
   
@@ -235,13 +270,18 @@ inline void each_scan_iteration(CharacterIterator& iterator, ScanResult& result)
     }
     
   } else if (is_recognized_single_character(c)) {
-    punctuation(iterator, result, c);
+    if (c == '/' && iterator.peek() == '/') {
+      comment(iterator, result, c);
+      
+    } else {
+      punctuation(iterator, result, c);
+    }
     
   } else if (c == '"') {
     string_literal(iterator, result, c);
     
   } else if (is_ascii_digit(c)) {
-    result.tokens.push_back(number_literal(iterator, c));
+    number_literal(iterator, result, c);
     
   } else if (is_ascii_alpha(c)) {
     identifier(iterator, result, c);

@@ -66,8 +66,8 @@ public:
     return result;
   }
   
-  char char_at(int index) const {
-    return units[index];
+  explicit operator char() const {
+    return units[0];
   }
   
   bool char_equals(char c) const {

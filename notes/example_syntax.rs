@@ -1,12 +1,12 @@
-trait Ord<T> {
-  fn lt(a: T, b: T) -> Bool
-  fn le(a: T, b: T) -> Bool
-  fn gt(a: T, b: T) -> Bool
-  fn ge(a: T, b: T) -> Bool
+trait Ord {
+  fn lt(a: Self, b: Self) -> Bool
+  fn le(a: Self, b: Self) -> Bool
+  fn gt(a: Self, b: Self) -> Bool
+  fn ge(a: Self, b: Self) -> Bool
 }
 
-trait Eq<T> {
-  fn eq(a: T, b: T) -> Bool
+trait Eq {
+  fn eq(a: Self, b: Self) -> Bool
 }
 
 struct MyAggregate {
@@ -49,11 +49,11 @@ impl Eq for MyString {
 
 fn main() {
   let str1 = MyString {
-    contents: ['a', 'b', 'c']
+    contents: ["a", "b", "c"]
   }
 
   let str2 = MyString {
-    contents: ['b', 'c', 'd']
+    contents: ["b", "c", "d"]
   }
 
   //  error: Type "MyString" is not assignable to Array<T> where T: Ord & Eq

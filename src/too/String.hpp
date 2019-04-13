@@ -21,5 +21,6 @@ namespace too {
   
   bool is_ascii_digit(Character c);
   bool is_ascii_alpha(Character c);
+  bool is_ascii_alpha_numeric(Character c);
   bool is_white_space(Character c);
 }

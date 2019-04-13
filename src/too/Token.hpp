@@ -16,16 +16,20 @@ namespace too {
   struct Token;
 }
 
-std::ostream& operator<<(std::ostream& os, const too::TokenType& token_type);
+std::ostream& operator<<(std::ostream& os, too::TokenType token_type);
 std::ostream& operator<<(std::ostream& os, const too::Token& token);
 
 namespace too {
   enum class TokenType {
     COLON,
+    COMMA,
+    PERIOD,
     LEFT_BRACE,
     RIGHT_BRACE,
     LEFT_PARENS,
     RIGHT_PARENS,
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
     NUMBER_LITERAL,
     STRING_LITERAL,
     PLUS,
@@ -51,6 +55,8 @@ namespace too {
     EQUAL,
     EQUAL_EQUAL,
     STRUCT,
+    LET,
+    LEFT_ARROW,
     END
   };
   
@@ -58,4 +64,6 @@ namespace too {
     TokenType type;
     StringView lexeme;
   };
+  
+  const char* const to_string(TokenType token_type);
 }

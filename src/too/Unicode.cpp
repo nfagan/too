@@ -12,7 +12,7 @@ namespace {
     return byte & ((uint8_t(1)) << index);
   }
   
-  bool is_valid_byte(uint8_t byte, uint8_t n_leading_ones) {
+  inline bool is_valid_byte(uint8_t byte, uint8_t n_leading_ones) {
     for (uint8_t i = 0; i < n_leading_ones; i++) {
       if (!is_bit_set(byte, 7 - i)) {
         return false;
@@ -20,6 +20,20 @@ namespace {
     }
     
     return !is_bit_set(byte, 7 - n_leading_ones);
+  }
+  
+  inline uint8_t count_most_significant_set_bits(uint8_t byte, uint8_t max_n_bytes) {
+    uint8_t n_bytes = 0;
+    
+    for (uint8_t i = 0; i < max_n_bytes; i++) {
+      if (is_bit_set(byte, 7 - i)) {
+        n_bytes++;
+      } else {
+        break;
+      }
+    }
+    
+    return n_bytes;
   }
 }
 
@@ -39,15 +53,7 @@ int too::utf8::count_code_units(const char* str, int64_t len) {
     return 1;
   }
   
-  uint8_t expected_n_bytes = 0;
-  
-  for (uint8_t i = 0; i < max_bytes; i++) {
-    if (is_bit_set(byte0, 7 - i)) {
-      expected_n_bytes++;
-    } else {
-      break;
-    }
-  }
+  uint8_t expected_n_bytes = count_most_significant_set_bits(byte0, max_bytes);
   
   //  First two bits should be set at minimum for valid multi-byte character.
   //  Or, we're expecting at least N bytes, but fewer than that many remain in the string.
@@ -67,7 +73,7 @@ int too::utf8::count_code_units(const char* str, int64_t len) {
   return expected_n_bytes;
 }
 
-bool too::utf8::is_valid(const char *str, int64_t len) {
+bool too::utf8::is_valid(const char* str, int64_t len) {
   int64_t index = 0;
   
   while (index < len) {
