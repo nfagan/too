@@ -3,11 +3,15 @@
 
 _program_: _expr_ | _stmt_
 
+---
 
 _stmt_: _fn_stmt_
 
-_fn_stmt_: "fn" _identifier_ "(" _identifier_ ")" "->" _identifier_
+_fn_stmt_: "fn" _identifier_ "(" _identifier_ ")" "->" _identifier_ _block_stmt_
 
+_block_stmt_: "{" (_stmt_)* "}"
+
+---
 
 _expr_: _logical_or_
 
