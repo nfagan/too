@@ -45,7 +45,9 @@ _relational_: **_additive_** ((`<`, `>`, `<=`, `>=`) **_additive_**)*
 
 _additive_: **_multiplicative_** ((`+`, `-`) **_multiplicative_**)*
 
-_multiplicative_: **_grouping_** ((`**`, `/`) **_grouping_**)*
+_multiplicative_: **_function_call_** ((`**`, `/`) **_function_call_**)*
+
+_function_call_: **_grouping_**, (**_identifier_**)? `(` (**_expr_**)* `)`
 
 _grouping_: **_unary_**, **_terminal_**, `(` **_expr_** `)`
 
