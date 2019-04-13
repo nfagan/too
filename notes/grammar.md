@@ -27,7 +27,7 @@ _struct_member_: **_identifier_** ':' **_maybe_typed_identifier_**
 
 _type_provision_: ':' **_identifier_**
 
-_generic_: '<' **_maybe_typed_identifier_**'>'
+_generic_: '<' **_maybe_typed_identifier_** '>'
 
 _maybe_typed_identifier_: **_identifier_** ('<' (**_maybe_typed_identifier_**)+ '>')?
 
@@ -47,8 +47,8 @@ _additive_: **_multiplicative_** (('+', '-') **_multiplicative_**)*
 
 _multiplicative_: **_grouping_** (('**', '/') **_grouping_**)*
 
-_grouping_: **_unary_**, **_term_**, '(' **_expr_** ')'
+_grouping_: **_unary_**, **_terminal_**, '(' **_expr_** ')'
 
 _unary_: ('!', '-') **_expr_**
 
-_term_: **_identifier_**, **_literal_**
+_terminal_: **_identifier_**, **_literal_**
