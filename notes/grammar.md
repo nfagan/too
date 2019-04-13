@@ -1,7 +1,7 @@
 # Grammar
 
 
-_program_*: _expr_*, (_stmt_*)*
+_program_**: _expr_**, (_stmt_**)*
 
 ---
 
