@@ -1,12 +1,11 @@
 #include "too/Scanner.hpp"
+#include "too/Display.hpp"
 #include <iterator>
 #include <fstream>
 
 namespace {
   void print_result(const too::ScanResult& scan_result) {
-    for (int64_t i = 0; i < scan_result.tokens.size(); i++) {
-      std::cout << scan_result.tokens[i] << std::endl;
-    }
+    too::print_tokens(scan_result.tokens);
     
     std::cout << "Had error ? " << std::boolalpha << scan_result.had_error << std::endl;
     
@@ -35,7 +34,7 @@ int main(int argc, char* argv[]) {
   
   if (!too::utf8::is_valid(code.c_str(), code.size())) {
     std::cout << "Invalid UTF-8 string" << std::endl;
-    return EXIT_SUCCESS;
+    return 0;
   }
   
   auto scan_result = too::scan(code.c_str(), code.size());
@@ -52,5 +51,5 @@ int main(int argc, char* argv[]) {
   std::cout << "is valid? " << std::boolalpha << too::utf8::is_valid(str2.c_str(), str2.size()) << std::endl;
   std::cout << "is valid? " << std::boolalpha << too::utf8::is_valid(code.c_str(), code.size()) << std::endl;
   
-  return EXIT_SUCCESS;
+  return 0;
 }

@@ -1,8 +1,8 @@
-struct Test<T> {
+struct Test {
   member1: Number
 }
 
-fn another(a: Number) -> Number {
+fn another<T>(a: T) -> T where T: {Ord, Eq} {
   return a
 }
 
