@@ -24,13 +24,15 @@ namespace too {
     COLON,
     COMMA,
     PERIOD,
+    SEMICOLON,
     LEFT_BRACE,
     RIGHT_BRACE,
     LEFT_PARENS,
     RIGHT_PARENS,
     LEFT_BRACKET,
     RIGHT_BRACKET,
-    NUMBER_LITERAL,
+    INT_LITERAL,
+    FLOAT_LITERAL,
     STRING_LITERAL,
     PLUS,
     MINUS,
@@ -57,6 +59,8 @@ namespace too {
     STRUCT,
     LET,
     LEFT_ARROW,
+    SELF,
+    SELF_TYPE,
     END
   };
   

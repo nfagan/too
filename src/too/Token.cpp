@@ -25,13 +25,15 @@ const char* const too::to_string(too::TokenType token_type) {
     {TokenType::COLON, "COLON"},
     {TokenType::COMMA, "COMMA"},
     {TokenType::PERIOD, "PERIOD"},
+    {TokenType::SEMICOLON, "SEMICOLON"},
     {TokenType::LEFT_BRACE, "LEFT_BRACE"},
     {TokenType::RIGHT_BRACE, "RIGHT_BRACE"},
     {TokenType::LEFT_PARENS, "LEFT_PARENS"},
     {TokenType::RIGHT_PARENS, "RIGHT_PARENS"},
     {TokenType::LEFT_BRACKET, "LEFT_BRACKET"},
     {TokenType::RIGHT_BRACKET, "RIGHT_BRACKET"},
-    {TokenType::NUMBER_LITERAL, "NUMBER_LITERAL"},
+    {TokenType::INT_LITERAL, "INT_LITERAL"},
+    {TokenType::FLOAT_LITERAL, "FLOAT_LITERAL"},
     {TokenType::STRING_LITERAL, "STRING_LITERAL"},
     {TokenType::PLUS, "PLUS"},
     {TokenType::MINUS, "MINUS"},
@@ -59,6 +61,8 @@ const char* const too::to_string(too::TokenType token_type) {
     {TokenType::STRUCT, "STRUCT"},
     {TokenType::LET, "LET"},
     {TokenType::LEFT_ARROW, "LEFT_ARROW"},
+    {TokenType::SELF, "SELF"},
+    {TokenType::SELF_TYPE, "SELF_TYPE"}
   };
   
   return token_type_to_string.at(token_type);

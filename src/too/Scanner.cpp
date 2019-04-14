@@ -45,7 +45,8 @@ namespace {
     {':', TokenType::COLON},
     {',', TokenType::COMMA},
     {'.', TokenType::PERIOD},
-    {'=', TokenType::EQUAL}
+    {'=', TokenType::EQUAL},
+    {';', TokenType::SEMICOLON}
   };
   
   static std::map<char, TokenType> COMPOUND_PUNCTUATION_START_TO_TOKEN_TYPE{
@@ -67,7 +68,9 @@ namespace {
     {"trait", TokenType::TRAIT},
     {"in", TokenType::IN},
     {"struct", TokenType::STRUCT},
-    {"let", TokenType::LET}
+    {"let", TokenType::LET},
+    {"self", TokenType::SELF},
+    {"Self", TokenType::SELF_TYPE}
   };
 }
 
@@ -145,6 +148,7 @@ inline int64_t consume_digits(CharacterIterator& iterator, bool* ended_on_decima
 void number_literal(CharacterIterator& iterator, ScanResult& result, Character last_char) {
   int64_t number_str_len = 1;
   int64_t number_start = current_index(iterator, last_char);
+  TokenType number_literal_type = TokenType::INT_LITERAL;
   
   bool ended_on_decimal;
   
@@ -152,9 +156,10 @@ void number_literal(CharacterIterator& iterator, ScanResult& result, Character l
   
   if (ended_on_decimal) {
     number_str_len += (consume_digits(iterator, &ended_on_decimal) + 1);
+    number_literal_type = TokenType::FLOAT_LITERAL;
   }
   
-  result.tokens.push_back(make_token(iterator, TokenType::NUMBER_LITERAL, number_start, number_str_len));
+  result.tokens.push_back(make_token(iterator, number_literal_type, number_start, number_str_len));
 }
 
 void string_literal(CharacterIterator& iterator, ScanResult& result, Character last_char) {

@@ -8,15 +8,15 @@
 #include "String.hpp"
 
 too::StringView too::make_string_view(const char* str, int64_t offset, int64_t len) {
-  return std::string_view(str + offset, len);
+  return too::StringView(str + offset, len);
 }
 
 too::StringView too::make_string_view(const too::String& str, int64_t offset, int64_t len) {
-  return std::string_view(str.c_str() + offset, len);
+  return too::StringView(str.c_str() + offset, len);
 }
 
 bool too::is_white_space(too::Character c) {
-  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+  return c.is_ascii() && (c == ' ' || c == '\t' || c == '\r' || c == '\n');
 }
 
 bool too::is_ascii_digit(too::Character c) {

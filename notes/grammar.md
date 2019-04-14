@@ -5,9 +5,9 @@ program: (**_stmt_**)*
 
 ---
 
-stmt: **_fn_stmt_**, **_if_stmt_**, **_let_stmt_**, **_return_stmt_**, **_struct_stmt_**, **_assign_stmt_**
+stmt: **_fn_stmt_**, **_if_stmt_**, **_let_stmt_**, **_return_stmt_**, **_struct_stmt_**, **_assign_stmt_**, **_trait_stmt_**
 
-fn_stmt: `fn` **_identifier_** (**_generic_**)? `(` (**_maybe_typed_identifier_**)* `)` `->` **_maybe_typed_identifier_** (**_where_clause_**)? **_block_stmt_**
+fn_stmt: `fn` **_identifier_** (**_generic_**)? `(` (**_maybe_typed_identifier_**)* `)` `->` **_maybe_typed_identifier_** (**_where_clause_**)? (**_block_stmt_**)?
 
 if_stmt: `if` **_expr_** **_block_stmt_** (`else` **_block_stmt_**)?
 
@@ -20,6 +20,8 @@ assign_stmt: **_identifier_** `=` **_expr_**
 return_stmt: `return` **_expr_**
 
 struct_stmt: `struct` **_identifier_** (**_generic_**)? `{` (**_struct_member_**)* `}`
+
+trait_stmt: `trait` `{` (**_fn_stmt_**)* `}`
 
 ---
 

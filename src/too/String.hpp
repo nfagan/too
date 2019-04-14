@@ -7,14 +7,23 @@
 
 #pragma once
 
+#define USE_TOO_STRING_VIEW
+
 #include "Vector.hpp"
 #include "Character.hpp"
 #include <string>
 #include <cstdint>
 
+#ifdef USE_TOO_STRING_VIEW
+#include "StringView.hpp"
+#endif
+
 namespace too {
   using String = std::string;
+  
+#ifndef USE_TOO_STRING_VIEW
   using StringView = std::string_view;
+#endif
   
   StringView make_string_view(const char* str, int64_t offset, int64_t len);
   StringView make_string_view(const String& str, int64_t offset, int64_t len);
