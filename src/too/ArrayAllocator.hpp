@@ -63,12 +63,14 @@ namespace too {
         dest = (T*) std::malloc(sizeof(T) * dest_capacity);
         
         if (src != nullptr) {
-          int64_t n_moved = dest_capacity > src_count ? src_count : dest_capacity;
+          int64_t n_copied = dest_capacity > src_count ? src_count : dest_capacity;
           
-          std::memcpy(dest, src, sizeof(T) * n_moved);
-          
-          free(src);
+          std::memcpy(dest, src, sizeof(T) * n_copied);
         }
+      }
+      
+      if (src != nullptr) {
+        free(src);
       }
       
       return dest;
@@ -90,10 +92,10 @@ namespace too {
         for (int64_t i = 0; i < n_moved; i++) {
           dest[i] = std::move(src[i]);
         }
-        
-        if (src != nullptr) {
-          delete[] src;
-        }
+      }
+      
+      if (src != nullptr) {
+        delete[] src;
       }
       
       return dest;

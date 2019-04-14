@@ -23,17 +23,17 @@ namespace {
   }
   
   inline uint8_t count_most_significant_set_bits(uint8_t byte, uint8_t max_n_bytes) {
-    uint8_t n_bytes = 0;
+    uint8_t n_bits = 0;
     
     for (uint8_t i = 0; i < max_n_bytes; i++) {
       if (is_bit_set(byte, 7 - i)) {
-        n_bytes++;
+        n_bits++;
       } else {
         break;
       }
     }
     
-    return n_bytes;
+    return n_bits;
   }
 }
 

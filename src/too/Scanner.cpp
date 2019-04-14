@@ -192,7 +192,7 @@ void string_literal(CharacterIterator& iterator, ScanResult& result, Character l
 
 void identifier(CharacterIterator& iterator, ScanResult& result, Character last_char) {
   const int64_t begin = current_index(iterator, last_char);
-  int64_t identifier_str_len = 1;
+  int64_t identifier_n_bytes = last_char.count_units();
   
   while (iterator.has_next()) {
     auto c = iterator.peek();
@@ -201,18 +201,18 @@ void identifier(CharacterIterator& iterator, ScanResult& result, Character last_
       break;
     }
     
-    identifier_str_len += c.count_units();
+    identifier_n_bytes += c.count_units();
     iterator.advance();
   }
   
-  auto identifier_view = make_string_view(iterator.data(), begin, identifier_str_len);
+  auto identifier_view = make_string_view(iterator.data(), begin, identifier_n_bytes);
   auto token_type = TokenType::IDENTIFIER;
   
   if (is_recognized_keyword(identifier_view)) {
     token_type = get_keyword_token_type(identifier_view);
   }
   
-  result.tokens.push_back(make_token(iterator, token_type, begin, identifier_str_len));
+  result.tokens.push_back(make_token(iterator, token_type, begin, identifier_n_bytes));
 }
 
 bool is_compound_punctuation(const CharacterIterator& iterator, Character last_char) {

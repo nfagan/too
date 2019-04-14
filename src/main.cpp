@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
   std::cout << sizeof(too::Character) << std::endl;
   std::cout << scan_result.tokens.size() << std::endl;
   
-  std::string str2 = "é";
+  std::string str2 = "éé\x80\x81\xc2\xc2";
   std::cout << too::utf8::count_code_units(str2.c_str(), str2.size()) << std::endl;
   
   std::cout << "is valid? " << std::boolalpha << too::utf8::is_valid(str2.c_str(), str2.size()) << std::endl;
