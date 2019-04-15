@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 
 namespace too {
   class StringView;
@@ -69,13 +70,7 @@ inline bool operator==(const too::StringView& a, const too::StringView& b) {
     return false;
   }
   
-  for (int64_t i = 0; i < sz; i++) {
-    if (a[i] != b[i]) {
-      return false;
-    }
-  }
-  
-  return true;
+  return std::memcmp(a.data(), b.data(), sz) == 0;
 }
 
 inline bool operator!=(const too::StringView& a, const too::StringView& b) {

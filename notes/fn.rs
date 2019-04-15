@@ -6,6 +6,6 @@ fn another<T, W>(a: T, b: T) -> T where T: Ord {
 
 fn two(a: Int, c: Int) -> Int {
   fn another() -> Int {
-    
+
   }
 }

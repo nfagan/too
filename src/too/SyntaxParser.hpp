@@ -20,5 +20,5 @@ namespace too {
     bool had_error;
   };
   
-  SyntaxParseResult parse(const too::Vector<too::Token>& tokens);
+  SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens);
 }

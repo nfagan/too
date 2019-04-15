@@ -236,7 +236,7 @@ void function(TokenIterator& iterator, SyntaxParseResult& result) {
       return;
     }
     
-    function_definition.type_parameters = std::move(maybe_type_parameters.rvalue());
+    function_definition.type_parameters = maybe_type_parameters.rvalue();
   }
   
   next = iterator.peek();
@@ -308,7 +308,7 @@ void function(TokenIterator& iterator, SyntaxParseResult& result) {
   std::cout << function_definition.to_string() << std::endl;
 }
 
-SyntaxParseResult parse(const too::Vector<too::Token>& tokens) {
+SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {
   SyntaxParseResult result;
   
   too::TokenIterator iterator(tokens.data(), tokens.size());

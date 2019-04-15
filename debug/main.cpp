@@ -28,7 +28,7 @@ namespace {
 }
 
 int main(int argc, char* argv[]) {
-  std::string code = "let (11.0001 + 2) === -> < <= !!= fn bold() {} bold_a 1.0 trait impl if{ } else {} in \"éée\" trai";
+  std::string code;
   
   if (argc > 1) {
     code = read_file(argv[1]);
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 //  print_result(scan_result);
   
   if (!scan_result.had_error) {
-    auto parse_result = too::parse(scan_result.tokens);
+    auto parse_result = too::parse_syntax(scan_result.tokens);
   }
   
   return 0;
