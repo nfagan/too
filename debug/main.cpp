@@ -41,28 +41,11 @@ int main(int argc, char* argv[]) {
   
   auto scan_result = too::scan(code.c_str(), code.size());
   
-  print_result(scan_result);
+//  print_result(scan_result);
   
   if (!scan_result.had_error) {
     auto parse_result = too::parse(scan_result.tokens);
   }
-  
-  std::cout << sizeof(std::string) << std::endl;
-  std::cout << sizeof(too::Character) << std::endl;
-  std::cout << scan_result.tokens.size() << std::endl;
-  
-  std::string str2 = "éé";
-  std::cout << too::utf8::count_code_units(str2.c_str(), str2.size()) << std::endl;
-  
-  std::cout << "is valid? " << std::boolalpha << too::utf8::is_valid(str2.c_str(), str2.size()) << std::endl;
-  std::cout << "is valid? " << std::boolalpha << too::utf8::is_valid(code.c_str(), code.size()) << std::endl;
-  
-  std::cout << sizeof(std::string_view) << std::endl;
-  std::cout << sizeof(too::StringView) << std::endl;
-  
-  too::StringView stra(code.c_str(), code.size());
-  
-  std::cout << (stra == stra) << std::endl;
   
   return 0;
 }

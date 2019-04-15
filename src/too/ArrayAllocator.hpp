@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <utility>
+#include <cassert>
 #include <iostream>
 
 namespace too {
@@ -88,10 +89,12 @@ namespace too {
       if (dest_capacity > 0) {
         dest = new T[dest_capacity];
         
-        int64_t n_moved = dest_capacity > src_count ? src_count : dest_capacity;
-        
-        for (int64_t i = 0; i < n_moved; i++) {
-          dest[i] = std::move(src[i]);
+        if (src != nullptr) {
+          int64_t n_moved = dest_capacity > src_count ? src_count : dest_capacity;
+          
+          for (int64_t i = 0; i < n_moved; i++) {
+            dest[i] = std::move(src[i]);
+          }
         }
       }
       

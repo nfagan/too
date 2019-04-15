@@ -7,8 +7,7 @@
 
 #pragma once
 
-#define USE_TOO_STRING_VIEW
-
+#include "Config.hpp"
 #include "Vector.hpp"
 #include "Character.hpp"
 #include <string>

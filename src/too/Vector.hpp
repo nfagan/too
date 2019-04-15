@@ -7,12 +7,11 @@
 
 #pragma once
 
+#include "Config.hpp"
 #include "ArrayAllocator.hpp"
 #include <cstdint>
 #include <cstddef>
 #include <iostream>
-
-#define USE_TOO_VECTOR
 
 #ifdef USE_TOO_VECTOR
 
@@ -20,6 +19,19 @@ namespace too {
   template <typename T>
   class Vector;
 }
+
+#else
+
+#include <vector>
+
+namespace too {
+  template <typename T>
+  using Vector = std::vector<T>;
+}
+
+#endif
+
+#ifdef USE_TOO_VECTOR
 
 template <typename T>
 class too::Vector {
@@ -41,12 +53,13 @@ public:
   
   Vector& operator=(const Vector& other) {
     if (this != &other) {
-      this->~Vector<T>();
+      if (capacity < other.capacity) {
+        contents = ArrayAllocator::reallocate<T>(contents, count, other.capacity);
+      }
       
       capacity = other.capacity;
       count = other.count;
       
-      contents = ArrayAllocator::reallocate<T>(nullptr, count, capacity);
       ArrayAllocator::copy<T>(other.contents, contents, count);
     }
     
@@ -129,14 +142,5 @@ private:
   int64_t capacity;
   int64_t count;
 };
-
-#else
-
-#include <vector>
-
-namespace too {
-  template <typename T>
-  using Vector = std::vector<T>;
-}
 
 #endif
