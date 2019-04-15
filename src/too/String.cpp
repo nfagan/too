@@ -40,5 +40,5 @@ too::String too::to_string(const too::StringView& view) {
     return "";
   }
   
-  return std::string(view.data(), view.size());
+  return too::String(view.data(), view.size());
 }

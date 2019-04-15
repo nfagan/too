@@ -72,8 +72,10 @@ const char* const too::to_string(too::TokenType token_type) {
 //
 //  Token
 
-too::Token too::Token::make_end() {
-  return too::Token{too::TokenType::END, too::StringView(nullptr, 0)};
+const too::Token& too::Token::end() {
+  static const too::Token end_token{too::TokenType::END, too::StringView(nullptr, 0)};
+  
+  return end_token;
 }
 
 //
@@ -93,9 +95,9 @@ int64_t too::TokenIterator::next_index() const {
   return next_ind;
 }
 
-too::Token too::TokenIterator::advance() {
+const too::Token& too::TokenIterator::next() {
   if (next_ind >= n_tokens) {
-    return Token::make_end();
+    return Token::end();
   }
   
   return tokens[next_ind++];
@@ -105,17 +107,17 @@ void too::TokenIterator::advance(int64_t n_places) {
   next_ind += n_places;
 }
 
-too::Token too::TokenIterator::peek() const {
+const too::Token& too::TokenIterator::peek() const {
   return peek(0);
 }
 
-too::Token too::TokenIterator::peek_next() const {
+const too::Token& too::TokenIterator::peek_next() const {
   return peek(1);
 }
 
-too::Token too::TokenIterator::peek(int64_t ahead) const {
+const too::Token& too::TokenIterator::peek(int64_t ahead) const {
   if (next_ind + ahead >= n_tokens) {
-    return Token::make_end();
+    return Token::end();
   }
   
   return tokens[next_ind + ahead];

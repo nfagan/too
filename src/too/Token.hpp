@@ -68,7 +68,7 @@ namespace too {
     TokenType type;
     StringView lexeme;
     
-    static Token make_end();
+    static const Token& end();
   };
   
   class TokenIterator {
@@ -76,11 +76,11 @@ namespace too {
     TokenIterator(const Token* tokens, int64_t n_tokens);
     ~TokenIterator() = default;
     
-    Token peek() const;
-    Token peek_next() const;
-    Token peek(int64_t ahead) const;
+    const Token& peek() const;
+    const Token& peek_next() const;
+    const Token& peek(int64_t ahead) const;
     
-    Token advance();
+    const Token& next();
     void advance(int64_t n_places);
     
     bool has_next() const;

@@ -20,7 +20,7 @@ bool expect_sequence(const TokenIterator& iterator,
                      const std::function<void(const Token&)>& error_handler) {
   
   for (int64_t i = 0; i < n_tokens; i++) {
-    auto token = iterator.peek(i);
+    const auto& token = iterator.peek(i);
     
     if (token.type != token_types[i]) {
       error_handler(token);
@@ -41,7 +41,7 @@ Optional<Vector<T>> comma_separated(TokenIterator& iterator,
   bool expect_comma = false;
   
   while (iterator.has_next()) {
-    auto next = iterator.peek();
+    const auto& next = iterator.peek();
     
     if (expect_comma && next.type != TokenType::COMMA) {
       if (stop_condition(iterator, next)) {
@@ -146,11 +146,11 @@ Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, Synt
   }
   
   ast::TraitBoundedType bounded_type;
-  bounded_type.type = iterator.advance().lexeme;
+  bounded_type.type = iterator.next().lexeme;
 
   iterator.advance(1);  //  Skip colon.
   
-  auto next = iterator.peek();
+  const auto& next = iterator.peek();
   
   if (next.type == TokenType::IDENTIFIER) {
     bounded_type.traits.push_back({next.lexeme});
@@ -314,7 +314,7 @@ SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {
   too::TokenIterator iterator(tokens.data(), tokens.size());
   
   while (iterator.has_next()) {
-    auto token = iterator.advance();
+    const auto& token = iterator.next();
     
     if (token.type == TokenType::FN) {
       function(iterator, result);
