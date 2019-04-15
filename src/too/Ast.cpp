@@ -6,6 +6,7 @@
 //
 
 #include "Ast.hpp"
+#include "Token.hpp"
 
 #define BEGIN_NAMESPACE namespace too {
 #define END_NAMESPACE }
@@ -27,7 +28,7 @@ String ast::TraitBoundedType::to_string() const {
   int64_t n_traits = traits.size();
   
   if (n_traits > 1) {
-    result += "{ ";
+    result += "{";
   }
   
   for (int64_t i = 0; i < n_traits; i++) {
@@ -39,7 +40,7 @@ String ast::TraitBoundedType::to_string() const {
   }
   
   if (n_traits > 1) {
-    result += " }";
+    result += "}";
   }
   
   return result;

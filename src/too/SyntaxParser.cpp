@@ -14,6 +14,24 @@
 
 BEGIN_NAMESPACE
 
+bool expect_sequence(const TokenIterator& iterator,
+                     const TokenType* token_types,
+                     int64_t n_tokens,
+                     const std::function<void(const Token&)>& error_handler) {
+  
+  for (int64_t i = 0; i < n_tokens; i++) {
+    auto token = iterator.peek(i);
+    
+    if (token.type != token_types[i]) {
+      error_handler(token);
+      
+      return false;
+    }
+  }
+  
+  return true;
+}
+
 template <typename T>
 Optional<Vector<T>> comma_separated(TokenIterator& iterator,
                                     const std::function<bool(TokenIterator&, const Token&)>& stop_condition,
@@ -117,25 +135,22 @@ Optional<Vector<ast::Identifier>> function_arguments(TokenIterator& iterator, Sy
 }
 
 Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, SyntaxParseResult& result) {
+  TokenType start_sequence[2] = {TokenType::IDENTIFIER, TokenType::COLON};
+  
+  const auto start_error_handler = [](const auto&) -> void {
+    //  @FIXME:
+  };
+  
+  if (!expect_sequence(iterator, start_sequence, 2, start_error_handler)) {
+    return NullOpt{};
+  }
+  
   ast::TraitBoundedType bounded_type;
+  bounded_type.type = iterator.advance().lexeme;
+
+  iterator.advance(1);  //  Skip colon.
   
   auto next = iterator.peek();
-  
-  if (next.type != TokenType::IDENTIFIER) {
-    return NullOpt{};
-  }
-  
-  bounded_type.type = next.lexeme;
-
-  iterator.advance(1);
-  next = iterator.peek();
-  
-  if (next.type != TokenType::COLON) {
-    return NullOpt{};
-  }
-  
-  iterator.advance(1);
-  next = iterator.peek();
   
   if (next.type == TokenType::IDENTIFIER) {
     bounded_type.traits.push_back({next.lexeme});
