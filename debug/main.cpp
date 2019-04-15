@@ -1,5 +1,7 @@
 #include "too/Scanner.hpp"
 #include "too/Display.hpp"
+#include "too/SyntaxParser.hpp"
+#include "too/Optional.hpp"
 #include <iterator>
 #include <fstream>
 
@@ -40,6 +42,10 @@ int main(int argc, char* argv[]) {
   auto scan_result = too::scan(code.c_str(), code.size());
   
   print_result(scan_result);
+  
+  if (!scan_result.had_error) {
+    auto parse_result = too::parse(scan_result.tokens);
+  }
   
   std::cout << sizeof(std::string) << std::endl;
   std::cout << sizeof(too::Character) << std::endl;

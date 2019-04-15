@@ -25,8 +25,11 @@ namespace too {
   using StringView = std::string_view;
 #endif
   
+  StringView make_null_string_view();
   StringView make_string_view(const char* str, int64_t offset, int64_t len);
   StringView make_string_view(const String& str, int64_t offset, int64_t len);
+  
+  String to_string(const StringView& view);
   
   bool is_ascii_digit(Character c);
   bool is_ascii_alpha(Character c);

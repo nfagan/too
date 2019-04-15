@@ -12,6 +12,10 @@
 #include <cstddef>
 #include <iostream>
 
+#define USE_TOO_VECTOR
+
+#ifdef USE_TOO_VECTOR
+
 namespace too {
   template <typename T>
   class Vector;
@@ -37,7 +41,7 @@ public:
   
   Vector& operator=(const Vector& other) {
     if (this != &other) {
-      ~Vector<T>();
+      this->~Vector<T>();
       
       capacity = other.capacity;
       count = other.count;
@@ -51,7 +55,7 @@ public:
   
   Vector& operator=(Vector&& other) {
     if (this != &other) {
-      ~Vector<T>();
+      this->~Vector<T>();
       
       contents = other.contents;
       capacity = other.capacity;
@@ -66,6 +70,8 @@ public:
   ~Vector() {
     ArrayAllocator::destroy<T>(contents, count);
     ArrayAllocator::deallocate<T>(contents);
+    
+    zero_members();
   }
   
   void push_back(const T& value) {
@@ -123,3 +129,14 @@ private:
   int64_t capacity;
   int64_t count;
 };
+
+#else
+
+#include <vector>
+
+namespace too {
+  template <typename T>
+  using Vector = std::vector<T>;
+}
+
+#endif

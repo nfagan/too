@@ -54,7 +54,7 @@ namespace {
     {'<', TokenType::LESS_EQUAL},
     {'>', TokenType::GREATER_EQUAL},
     {'=', TokenType::EQUAL_EQUAL},
-    {'-', TokenType::LEFT_ARROW}
+    {'-', TokenType::RIGHT_ARROW}
   };
   
   static std::map<StringView, TokenType> KEYWORD_TO_TOKEN_TYPE{

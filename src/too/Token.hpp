@@ -58,7 +58,7 @@ namespace too {
     EQUAL_EQUAL,
     STRUCT,
     LET,
-    LEFT_ARROW,
+    RIGHT_ARROW,
     SELF,
     SELF_TYPE,
     END
@@ -67,6 +67,30 @@ namespace too {
   struct Token {
     TokenType type;
     StringView lexeme;
+    
+    static Token make_end();
+  };
+  
+  class TokenIterator {
+  public:
+    TokenIterator(const Token* tokens, int64_t n_tokens);
+    ~TokenIterator() = default;
+    
+    Token peek() const;
+    Token peek_next() const;
+    Token peek(int64_t ahead) const;
+    
+    Token advance();
+    void advance(int64_t n_places);
+    
+    bool has_next() const;
+    int64_t next_index() const;
+    
+  private:
+    const Token* tokens;
+    int64_t n_tokens;
+    
+    int64_t next_ind;
   };
   
   const char* const to_string(TokenType token_type);

@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <utility>
+#include <iostream>
 
 namespace too {
   struct ArrayAllocator {
@@ -39,7 +40,7 @@ namespace too {
     template <typename T>
     static inline std::enable_if_t<!std::is_trivially_destructible_v<T>, void> destroy(T* ptr, int64_t count) {
       for (int64_t i = 0; i < count; i++) {
-        ptr->~T();
+        ptr[i].~T();
       }
     }
     

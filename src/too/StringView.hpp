@@ -15,8 +15,9 @@ namespace too {
 
 class too::StringView {
 public:
-  StringView() = default;
-  ~StringView() = default;
+  StringView() : str(nullptr), len(0) {
+    //
+  }
   
   StringView(const char* str) : str(str), len(std::strlen(str)) {
     //
@@ -26,12 +27,22 @@ public:
     //
   }
   
+  ~StringView() = default;
+  
   int64_t size() const {
     return len;
   }
   
   int64_t length() const {
     return len;
+  }
+  
+  bool is_empty() const {
+    return len == 0;
+  }
+  
+  const char* data() const {
+    return str;
   }
   
   char operator[](int64_t at) const {

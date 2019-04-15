@@ -7,6 +7,10 @@
 
 #include "String.hpp"
 
+too::StringView too::make_null_string_view() {
+  return too::StringView(nullptr, 0);
+}
+
 too::StringView too::make_string_view(const char* str, int64_t offset, int64_t len) {
   return too::StringView(str + offset, len);
 }
@@ -29,4 +33,12 @@ bool too::is_ascii_alpha(Character c) {
 
 bool too::is_ascii_alpha_numeric(Character c) {
   return is_ascii_alpha(c) || is_ascii_digit(c);
+}
+
+too::String too::to_string(const too::StringView& view) {
+  if (view.is_empty()) {
+    return "";
+  }
+  
+  return std::string(view.data(), view.size());
 }

@@ -60,10 +60,63 @@ const char* const too::to_string(too::TokenType token_type) {
     {TokenType::EQUAL_EQUAL, "EQUAL_EQUAL"},
     {TokenType::STRUCT, "STRUCT"},
     {TokenType::LET, "LET"},
-    {TokenType::LEFT_ARROW, "LEFT_ARROW"},
+    {TokenType::RIGHT_ARROW, "RIGHT_ARROW"},
     {TokenType::SELF, "SELF"},
     {TokenType::SELF_TYPE, "SELF_TYPE"}
   };
   
   return token_type_to_string.at(token_type);
+}
+
+//
+//
+//  Token
+
+too::Token too::Token::make_end() {
+  return too::Token{too::TokenType::END, too::StringView(nullptr, 0)};
+}
+
+//
+//
+//  TokenIterator
+
+too::TokenIterator::TokenIterator(const too::Token* tokens, int64_t n_tokens) :
+  tokens(tokens), n_tokens(n_tokens), next_ind(0) {
+  //
+}
+
+bool too::TokenIterator::has_next() const {
+  return next_ind < n_tokens;
+}
+
+int64_t too::TokenIterator::next_index() const {
+  return next_ind;
+}
+
+too::Token too::TokenIterator::advance() {
+  if (next_ind >= n_tokens) {
+    return Token::make_end();
+  }
+  
+  return tokens[next_ind++];
+}
+
+void too::TokenIterator::advance(int64_t n_places) {
+  next_ind += n_places;
+}
+
+too::Token too::TokenIterator::peek() const {
+  return peek(0);
+}
+
+too::Token too::TokenIterator::peek_next() const {
+  return peek(1);
+}
+
+too::Token too::TokenIterator::peek(int64_t ahead) const {
+  if (next_ind + ahead >= n_tokens) {
+    return Token::make_end();
+  }
+  
+  return tokens[next_ind + ahead];
 }

@@ -7,10 +7,18 @@
 
 #pragma once
 
+#include "Vector.hpp"
+#include "Token.hpp"
+
 namespace too {
-  struct SyntaxParseResult {
-    bool success;
+  struct SyntaxError {
+    std::string message;
   };
   
+  struct SyntaxParseResult {
+    too::Vector<SyntaxError> syntax_errors;
+    bool had_error;
+  };
   
+  SyntaxParseResult parse(const too::Vector<too::Token>& tokens);
 }
