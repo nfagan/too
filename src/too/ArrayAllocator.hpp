@@ -14,7 +14,6 @@
 #include <cstdlib>
 #include <utility>
 #include <cassert>
-#include <iostream>
 
 namespace too {
   struct ArrayAllocator {

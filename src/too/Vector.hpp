@@ -95,12 +95,21 @@ public:
     contents[count++] = value;
   }
   
+  void pop_back() {
+    ArrayAllocator::destroy<T>(contents+count-1, 1);
+    count--;
+  }
+  
   const T* data() const {
     return contents;
   }
   
   T* data() {
     return contents;
+  }
+  
+  const T& back() const {
+    return contents[count-1];
   }
   
   const T& operator[](int64_t at) const {
@@ -112,7 +121,7 @@ public:
   }
   
   void reserve(int64_t to) {
-    if (to < 0 || to < capacity) {
+    if (to <= capacity) {
       return;
     }
     
@@ -132,8 +141,8 @@ private:
   
   void zero_members() {
     contents = nullptr;
-    count = 0;
     capacity = 0;
+    count = 0;
   }
   
 private:

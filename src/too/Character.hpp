@@ -10,6 +10,7 @@
 #include "Unicode.hpp"
 #include <cstring>
 #include <cstdint>
+#include <type_traits>
 
 namespace too {
   class Character;
@@ -44,6 +45,7 @@ public:
   Character(const Character& other) = default;
   
   explicit Character(char c) {
+    static_assert(std::is_trivially_copyable_v<too::Character>, "Expected class to be trivially copyable.");
     zero_units();
     units[0] = c;
   }
@@ -57,6 +59,10 @@ public:
     for (int i = 0; i < n_units; i++) {
       units[i] = str[i];
     }
+  }
+  
+  explicit Character(const char* str) : Character(str, std::strlen(str)) {
+    //
   }
   
   explicit operator uint32_t() const {

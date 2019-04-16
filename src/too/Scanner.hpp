@@ -11,6 +11,7 @@
 #include "Vector.hpp"
 #include "Token.hpp"
 #include <cstdint>
+#include <ostream>
 
 namespace too {
   enum class ScanErrorType {

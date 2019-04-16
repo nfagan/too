@@ -7,6 +7,7 @@
 
 #include "SyntaxParser.hpp"
 #include "Ast.hpp"
+#include "TokenNFA.hpp"
 #include <functional>
 
 #define BEGIN_NAMESPACE namespace too {
