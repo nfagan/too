@@ -57,6 +57,18 @@ namespace too {
     }
     
     template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>, int> = 0>
+    static inline void construct(T* data, int64_t count) {
+      std::memset(data, 0, sizeof(T) * count);
+    }
+    
+    template <typename T>
+    static inline std::enable_if_t<!std::is_trivially_constructible_v<T>, void> construct(T* data, int64_t count) {
+      for (int64_t i = 0; i < count; i++) {
+        new (&data[i]) T();
+      }
+    }
+    
+    template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>, int> = 0>
     static inline T* reallocate(T* src, int64_t src_count, int64_t dest_capacity) {
       T* dest = nullptr;
       

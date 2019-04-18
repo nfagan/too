@@ -11,9 +11,10 @@
 #include "ArrayAllocator.hpp"
 #include <cstdint>
 #include <cstddef>
-#include <iostream>
 
 #ifdef USE_TOO_VECTOR
+
+#include <utility>
 
 namespace too {
   template <typename T>
@@ -87,6 +88,12 @@ public:
     zero_members();
   }
   
+  void swap(Vector<T>& other) {
+    std::swap(contents, other.contents);
+    std::swap(capacity, other.capacity);
+    std::swap(count, other.count);
+  }
+  
   void push_back(const T& value) {
     if (count == capacity) {
       increase_capacity();
@@ -112,6 +119,10 @@ public:
     return contents[count-1];
   }
   
+  bool empty() const {
+    return count == 0;
+  }
+  
   const T& operator[](int64_t at) const {
     return contents[at];
   }
@@ -127,6 +138,20 @@ public:
     
     contents = ArrayAllocator::reallocate<T>(contents, count, to);
     capacity = to;
+  }
+  
+  void resize(int64_t to) {
+    if (to <= count) {
+      return;
+    }
+    
+    if (to > capacity) {      
+      contents = ArrayAllocator::reallocate<T>(contents, count, to);
+      capacity = to;
+    }
+    
+    ArrayAllocator::construct<T>(contents + count, to - count);
+    count = to;
   }
   
   int64_t size() const {
@@ -151,5 +176,10 @@ private:
   int64_t capacity;
   int64_t count;
 };
+
+template <typename T>
+void swap(too::Vector<T>& a, too::Vector<T>& b) {
+  a.swap(b);
+}
 
 #endif

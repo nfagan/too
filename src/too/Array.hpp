@@ -14,5 +14,9 @@ namespace too {
   struct PtrWithSize {
     T* data;
     const Size size;
+    
+    const T& operator[](int64_t at) const {
+      return data[at];
+    }
   };
 }

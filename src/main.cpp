@@ -1,6 +1,7 @@
 #include "too/Scanner.hpp"
 #include <iterator>
 #include <fstream>
+#include <iostream>
 
 namespace {
   void print_result(const too::ScanResult& scan_result) {

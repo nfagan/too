@@ -5,6 +5,7 @@
 #include "too/Optional.hpp"
 #include <iterator>
 #include <fstream>
+#include <iostream>
 
 namespace {
   void test_nfa(const too::Vector<too::Token>& tokens) {

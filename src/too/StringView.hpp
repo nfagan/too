@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <ostream>
 
 namespace too {
   class StringView;

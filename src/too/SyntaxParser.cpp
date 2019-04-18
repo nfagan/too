@@ -9,6 +9,7 @@
 #include "Ast.hpp"
 #include "TokenNFA.hpp"
 #include <functional>
+#include <iostream>
 
 #define BEGIN_NAMESPACE namespace too {
 #define END_NAMESPACE }
