@@ -117,10 +117,6 @@ inline ScanError make_unrecognized_symbol_error(CharacterIterator& iterator, Cha
   return {ScanErrorType::UNRECOGNIZED_SYMBOL, begin, end};
 }
 
-inline void mark_new_line(CharacterIterator& iterator, ScanResult& result, Character last_char) {
-  result.new_line_indices.push_back(current_index(iterator, last_char));
-}
-
 inline int64_t consume_digits(CharacterIterator& iterator, bool* ended_on_decimal) {
   int64_t n_digits = 0;
   *ended_on_decimal = false;
@@ -177,8 +173,6 @@ void string_literal(CharacterIterator& iterator, ScanResult& result, Character l
       iterator.advance();
       closed_string = true;
       break;
-    } else if (c == '\n') {
-      mark_new_line(iterator, result, c);
     }
     
     n_bytes += c.count_units();
@@ -270,10 +264,7 @@ inline void each_scan_iteration(CharacterIterator& iterator, ScanResult& result)
   auto c = iterator.advance();
   
   if (is_white_space(c)) {
-    if (c == '\n') {
-      mark_new_line(iterator, result, c);
-    }
-    
+    //
   } else if (is_recognized_single_character(c)) {
     if (c == '/' && iterator.peek() == '/') {
       comment(iterator, result, c);
@@ -295,6 +286,10 @@ inline void each_scan_iteration(CharacterIterator& iterator, ScanResult& result)
     //  syntax error: Unrecognized token.
     result.errors.push_back(make_unrecognized_symbol_error(iterator, c));
   }
+}
+
+ScanResult scan(const String& code) {
+  return scan(code.c_str(), code.size());
 }
 
 ScanResult scan(const char* code, int64_t len) {

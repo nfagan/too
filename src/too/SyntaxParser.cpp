@@ -7,7 +7,7 @@
 
 #include "SyntaxParser.hpp"
 #include "Ast.hpp"
-#include "TokenNFA.hpp"
+#include "TokenNfa.hpp"
 #include <functional>
 #include <iostream>
 
@@ -136,9 +136,18 @@ Optional<Vector<ast::Identifier>> function_arguments(TokenIterator& iterator, Sy
   return comma_result;
 }
 
+#define USE_TOKEN_NFA
+
 Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, SyntaxParseResult& result) {
   TokenType start_sequence[2] = {TokenType::IDENTIFIER, TokenType::COLON};
   
+#ifdef USE_TOKEN_NFA
+  TokenRegex pattern(&start_sequence[0], 2);
+  
+  if (!pattern.matches_iterator(iterator, 2)) {
+    return NullOpt{};
+  }
+#else
   const auto start_error_handler = [](const auto&) -> void {
     //  @FIXME:
   };
@@ -146,6 +155,7 @@ Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, Synt
   if (!expect_sequence(iterator, start_sequence, 2, start_error_handler)) {
     return NullOpt{};
   }
+#endif
   
   ast::TraitBoundedType bounded_type;
   bounded_type.type = iterator.next().lexeme;
@@ -307,7 +317,7 @@ void function(TokenIterator& iterator, SyntaxParseResult& result) {
     return;
   }
   
-  std::cout << function_definition.to_string() << std::endl;
+//  std::cout << function_definition.to_string() << std::endl;
 }
 
 SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {

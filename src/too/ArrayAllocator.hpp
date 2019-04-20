@@ -45,7 +45,7 @@ namespace too {
     }
     
     template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>, int> = 0>
-    static inline void copy(T* src, T* dest, int64_t count) {
+    static inline void copy(const T* src, T* dest, int64_t count) {
       std::memcpy(dest, src, sizeof(T) * count);
     }
     
@@ -74,6 +74,7 @@ namespace too {
       
       if (dest_capacity > 0) {
         dest = (T*) std::malloc(sizeof(T) * dest_capacity);
+        assert(dest && "Memory allocation failed.");
         
         if (src != nullptr) {
           int64_t n_copied = dest_capacity > src_count ? src_count : dest_capacity;

@@ -36,7 +36,7 @@ bool too::is_ascii_alpha_numeric(Character c) {
 }
 
 too::String too::to_string(const too::StringView& view) {
-  if (view.is_empty()) {
+  if (view.empty()) {
     return "";
   }
   

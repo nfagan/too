@@ -29,10 +29,10 @@ namespace too {
   struct ScanResult {
     too::Vector<too::Token> tokens;
     too::Vector<too::ScanError> errors;
-    too::Vector<int64_t> new_line_indices;
     bool had_error;
   };
   
+  ScanResult scan(const String& code);
   ScanResult scan(const char* code, int64_t len);
 }
 

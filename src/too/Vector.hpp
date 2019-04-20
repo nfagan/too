@@ -32,6 +32,18 @@ namespace too {
 
 #endif
 
+namespace too {
+  template <typename T>
+  inline const T* data(const Vector<T>& vec) {
+    return vec.data();
+  }
+  
+  template <typename T>
+  inline int64_t size(const Vector<T>& vec) {
+    return vec.size();
+  }
+}
+
 #ifdef USE_TOO_VECTOR
 
 template <typename T>
@@ -39,6 +51,24 @@ class too::Vector {
 public:
   Vector() : contents(nullptr), capacity(0), count(0) {
     //
+  }
+  
+  explicit Vector(int64_t use_count) {
+    if (use_count < 0) {
+      use_count = 0;
+    }
+    
+    count = use_count;
+    capacity = use_count;
+    contents = ArrayAllocator::reallocate<T>(nullptr, count, capacity);
+  }
+  
+  Vector(const T* begin, const T* end) {
+    count = end - begin;
+    capacity = count;
+    contents = ArrayAllocator::reallocate<T>(nullptr, count, capacity);
+    
+    ArrayAllocator::copy<T>(begin, contents, count);
   }
   
   Vector(Vector&& other) : contents(other.contents), capacity(other.capacity), count(other.count) {
@@ -82,9 +112,7 @@ public:
   }
   
   ~Vector() {
-    ArrayAllocator::destroy<T>(contents, count);
     ArrayAllocator::deallocate<T>(contents);
-    
     zero_members();
   }
   

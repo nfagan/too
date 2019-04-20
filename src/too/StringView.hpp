@@ -39,7 +39,7 @@ public:
     return len;
   }
   
-  bool is_empty() const {
+  bool empty() const {
     return len == 0;
   }
   

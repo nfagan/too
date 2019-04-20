@@ -43,3 +43,4 @@ target_link_libraries(too-debug too)
 target_link_libraries(too-debug-run too-debug)
 
 target_include_directories(too-debug PUBLIC src/)
+target_include_directories(too-test PRIVATE src/)
