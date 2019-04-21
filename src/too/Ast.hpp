@@ -15,6 +15,7 @@
 
 namespace too {
   enum class TokenType;
+  struct Identifier;
   
   namespace ast {
     struct Def {};
@@ -31,11 +32,27 @@ namespace too {
       TokenType operator_token;
       BoxedExpr expression;
       
-      UnaryExpr() = default;
+      UnaryExpr() : expression(nullptr) {
+        //
+      }
+      
       ~UnaryExpr() = default;
+      
+      UnaryExpr(UnaryExpr&& other) :
+        operator_token(other.operator_token),
+        expression(std::move(other.expression)) {
+        //
+      }
       
       UnaryExpr(TokenType op, BoxedExpr&& expr) : operator_token(op), expression(std::move(expr)) {
         //
+      }
+      
+      UnaryExpr& operator=(UnaryExpr&& other) {
+        operator_token = other.operator_token;
+        expression = std::move(other.expression);
+        
+        return *this;
       }
       
       String to_string() const override;
@@ -48,6 +65,21 @@ namespace too {
       
       BinaryExpr() = default;
       ~BinaryExpr() = default;
+      
+      BinaryExpr& operator=(BinaryExpr&& other) {
+        operator_token = other.operator_token;
+        left = std::move(other.left);
+        right = std::move(other.right);
+        
+        return *this;
+      }
+      
+      BinaryExpr(BinaryExpr&& other) :
+        operator_token(other.operator_token),
+        left(std::move(other.left)),
+        right(std::move(other.right)) {
+          //
+      }
       
       BinaryExpr(TokenType op, BoxedExpr&& left, BoxedExpr&& right) :
         operator_token(op), left(std::move(left)), right(std::move(right)) {
@@ -64,6 +96,7 @@ namespace too {
       
       IntLiteralExpr() = default;
       ~IntLiteralExpr() = default;
+      
       String to_string() const override;
     };
     
@@ -74,6 +107,34 @@ namespace too {
       
       FloatLiteralExpr() = default;
       ~FloatLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct IdentifierLiteralExpr : public Expr {
+      StringView name;
+      
+      IdentifierLiteralExpr() = default;
+      IdentifierLiteralExpr(const StringView& name) : name(name) {
+        //
+      }
+      
+      ~IdentifierLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct FunctionCallExpr : public Expr {
+      StringView name;
+      Vector<BoxedExpr> input_arguments;
+      
+      FunctionCallExpr() = default;
+      ~FunctionCallExpr() = default;
+      FunctionCallExpr(const StringView& name, Vector<BoxedExpr>&& args) :
+      name(name), input_arguments(std::move(args)) {
+        //
+      }
+      
       String to_string() const override;
     };
     

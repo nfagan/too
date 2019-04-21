@@ -155,6 +155,10 @@ public:
     return contents[count-1];
   }
   
+  T& back() {
+    return contents[count-1];
+  }
+  
   bool empty() const {
     return count == 0;
   }

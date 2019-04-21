@@ -61,7 +61,9 @@ const too::Token& too::TokenIterator::peek_next() const {
 }
 
 const too::Token& too::TokenIterator::peek(int64_t ahead) const {
-  if (next_ind + ahead >= n_tokens) {
+  auto ind = next_ind + ahead;
+  
+  if (ind < 0 || ind >= n_tokens) {
     return Token::end();
   }
   

@@ -17,6 +17,8 @@
 
 BEGIN_NAMESPACE
 
+Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& result);
+
 template <typename T, typename... Args>
 inline Optional<ast::BoxedExpr> make_optional_boxed_expr(Args&&... args) {
   return Optional<ast::BoxedExpr>(std::make_unique<T>(std::forward<Args>(args)...));
@@ -24,6 +26,18 @@ inline Optional<ast::BoxedExpr> make_optional_boxed_expr(Args&&... args) {
 
 inline bool is_unary_token_type(const TokenType token_type) {
   return token_type == TokenType::BANG || token_type == TokenType::MINUS;
+}
+
+inline bool is_unary_operable(const TokenType preceding_token) {
+  switch (preceding_token) {
+    case TokenType::IDENTIFIER:
+    case TokenType::INT_LITERAL:
+    case TokenType::FLOAT_LITERAL:
+    case TokenType::RIGHT_PARENS:
+      return false;
+    default:
+      return true;
+  }
 }
 
 inline bool is_binary_token_type(const TokenType token_type) {
@@ -41,6 +55,26 @@ inline bool is_binary_token_type(const TokenType token_type) {
       return true;
     default:
       return false;
+  }
+}
+
+inline int token_precedence(const TokenType token_type) {
+  switch (token_type) {
+    case TokenType::EQUAL:
+      return 1;
+    case TokenType::LESS:
+    case TokenType::LESS_EQUAL:
+    case TokenType::GREATER:
+    case TokenType::GREATER_EQUAL:
+      return 2;
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+      return 3;
+    case TokenType::STAR:
+    case TokenType::FORWARD_SLASH:
+      return 4;
+    default:
+      return -1;
   }
 }
 
@@ -100,8 +134,6 @@ inline Optional<TooInteger> try_parse_int(const StringView& view) {
 }
 
 inline Optional<TooFloat> try_parse_float(const StringView& view) {
-  static_assert(std::is_same_v<TooFloat, double>, "Expected double as underlying float type.");
-  
   if (view.empty()) {
     return NullOpt{};
   }
@@ -315,11 +347,7 @@ Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, Synt
     
     auto comma_result = type_parameters(iterator, result);
     
-    if (!comma_result) {
-      return NullOpt{};
-    }
-    
-    if (!consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
+    if (!comma_result || !consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
       return NullOpt{};
     }
     
@@ -545,55 +573,205 @@ void trait_definition(TokenIterator& iterator, SyntaxParseResult& result) {
   result.traits.push_back(std::move(trait_def));
 }
 
-Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& result) {
-  const auto next = iterator.next();
+Optional<ast::BoxedExpr> function_call(TokenIterator& iterator,
+                                       SyntaxParseResult& result,
+                                       const Token& function_token) {
   
-  if (is_unary_token_type(next.type)) {
-    auto operator_token = next.type;
-    auto sub_expression = expression(iterator, result);
+  Vector<ast::BoxedExpr> input_arguments;
+  
+  while (iterator.peek().type != TokenType::RIGHT_PARENS) {
+    auto arg_result = expression(iterator, result);
     
-    if (!sub_expression) {
+    if (!arg_result) {
       return NullOpt{};
     }
     
-    auto unary_expr = make_optional_boxed_expr<ast::UnaryExpr>(operator_token, sub_expression.rvalue());
+    input_arguments.push_back(arg_result.rvalue());
     
-    if (is_binary_token_type(iterator.peek().type)) {
-      auto binary_operator = iterator.next().type;
-      
-      auto rhs = expression(iterator, result);
-      
-      if (!rhs) {
-        return NullOpt{};
-      }
-      
-      return make_optional_boxed_expr<ast::BinaryExpr>(binary_operator, unary_expr.rvalue(), rhs.rvalue());
+    if (iterator.peek().type == TokenType::COMMA) {
+      iterator.advance(1);
     } else {
-      return unary_expr;
-    }
-    
-  } else if (is_literal_token_type(next.type)) {
-    if (next.type == TokenType::INT_LITERAL) {
-      auto parsed_int = try_parse_int(next.lexeme);
-      
-      if (!parsed_int) {
-        return NullOpt{};
-      }
-      
-      return make_optional_boxed_expr<ast::IntLiteralExpr>(parsed_int.value());
-      
-    } else if (next.type == TokenType::FLOAT_LITERAL) {
-      auto parsed_float = try_parse_float(next.lexeme);
-      
-      if (!parsed_float) {
-        return NullOpt{};
-      }
-      
-      return make_optional_boxed_expr<ast::FloatLiteralExpr>(parsed_float.value());
+      break;
     }
   }
   
-  return NullOpt{};
+  if (input_arguments.empty() && !consume_token(iterator, result, TokenType::RIGHT_PARENS)) {
+    return NullOpt{};
+  }
+  
+  return make_optional_boxed_expr<ast::FunctionCallExpr>(function_token.lexeme, std::move(input_arguments));
+}
+
+inline bool identifier_expression(TokenIterator& iterator,
+                                  SyntaxParseResult& result,
+                                  Vector<ast::BoxedExpr>& completed,
+                                  const Token& current) {
+  
+  if (iterator.peek().type == TokenType::LEFT_PARENS) {
+    iterator.advance(1);
+    
+    auto func_call = function_call(iterator, result, current);
+    
+    if (!func_call) {
+      return false;
+    }
+    
+    completed.push_back(func_call.rvalue());
+  } else {
+    completed.push_back(std::make_unique<ast::IdentifierLiteralExpr>(current.lexeme));
+  }
+  
+  return true;
+}
+
+inline bool literal_expression(TokenIterator& iterator,
+                               SyntaxParseResult& result,
+                               Vector<ast::BoxedExpr>& completed,
+                               const Token& current) {
+  
+  if (current.type == TokenType::INT_LITERAL) {
+    auto parse_result = try_parse_int(current.lexeme);
+    
+    if (!parse_result) {
+      return false;
+    }
+    
+    completed.push_back(std::make_unique<ast::IntLiteralExpr>(parse_result.value()));
+    return true;
+    
+  } else if (current.type == TokenType::FLOAT_LITERAL) {
+    auto parse_result = try_parse_float(current.lexeme);
+    
+    if (!parse_result) {
+      return false;
+    }
+    
+    completed.push_back(std::make_unique<ast::FloatLiteralExpr>(parse_result.value()));
+    return true;
+  }
+  
+  return false;
+}
+
+inline bool grouping_expression(TokenIterator& iterator,
+                                SyntaxParseResult& result,
+                                Vector<ast::BoxedExpr>& completed) {
+  
+  auto expr = expression(iterator, result);
+  
+  if (!expr) {
+    return false;
+  }
+  
+  completed.push_back(expr.rvalue());
+  
+  return true;
+}
+
+Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& result) {
+  Vector<std::unique_ptr<ast::UnaryExpr>> unaries;
+  Vector<std::unique_ptr<ast::BinaryExpr>> binaries;
+  Vector<ast::BoxedExpr> completed;
+  Vector<std::unique_ptr<ast::BinaryExpr>> pending;
+  Vector<int> pending_precedence;
+  
+  while (iterator.has_next()) {
+    auto next = iterator.peek();
+    
+    if (next.type == TokenType::LEFT_PARENS) {
+      iterator.advance(1);
+      
+      if (!grouping_expression(iterator, result, completed)) {
+        return NullOpt{};
+      }
+      
+    } else if (next.type == TokenType::IDENTIFIER) {
+      iterator.advance(1);
+      
+      if (!identifier_expression(iterator, result, completed, next)) {
+        return NullOpt{};
+      }
+      
+    } else if (is_literal_token_type(next.type)) {
+      iterator.advance(1);
+      
+      if (!literal_expression(iterator, result, completed, next)) {
+        return NullOpt{};
+      }
+      
+    } else if (is_unary_token_type(next.type) && is_unary_operable(iterator.peek(-1).type)) {
+      iterator.advance(1);
+      unaries.push_back(std::make_unique<ast::UnaryExpr>(next.type, nullptr));
+      
+    } else if (is_binary_token_type(next.type)) {
+      iterator.advance(1);
+      
+      if (completed.empty()) {
+        //  Expect lhs.
+        return NullOpt{};
+      }
+      
+      auto left = std::move(completed.back());
+      binaries.push_back(std::make_unique<ast::BinaryExpr>(next.type, std::move(left), nullptr));
+      completed.pop_back();
+      
+    } else if (next.type == TokenType::SEMICOLON ||
+               next.type == TokenType::RIGHT_PARENS) {
+      iterator.advance(1);
+      break;
+      
+    } else {
+      if (next.type == TokenType::COMMA) {
+        break;
+      } else {
+        return NullOpt{};
+      }
+    }
+    
+    if (completed.empty()) {
+      continue;
+    }
+    
+    while (!unaries.empty()) {
+      unaries.back()->expression = std::move(completed.back());
+      completed.back() = std::move(unaries.back());
+      
+      unaries.pop_back();
+    }
+      
+    if (!binaries.empty()) {
+      auto& bin = binaries.back();
+      int prec_curr = token_precedence(bin->operator_token);
+      int prec_next = token_precedence(iterator.peek().type);
+      
+      if (prec_curr < prec_next) {
+        pending.push_back(std::move(bin));
+        pending_precedence.push_back(prec_next);
+        
+      } else {
+        auto complete = std::move(completed.back());
+        bin->right = std::move(complete);
+        completed.back() = std::move(bin);
+          
+        while (!pending.empty() && prec_next < prec_curr) {
+          auto pend = std::move(pending.back());
+          prec_curr = pending_precedence.back();
+          
+          pend->right = std::move(completed.back());
+          completed.back() = std::move(pend);
+          
+          pending.pop_back();
+          pending_precedence.pop_back();
+        }
+      }
+    }
+  }
+  
+  if (completed.size() == 1) {
+    return Optional<ast::BoxedExpr>(std::move(completed[0]));
+  } else {
+    return NullOpt{};
+  }
 }
 
 void let_statement(TokenIterator& iterator, SyntaxParseResult& result) {
@@ -619,7 +797,6 @@ void let_statement(TokenIterator& iterator, SyntaxParseResult& result) {
   }
   
   let_stmt.identifier = identifier.rvalue();
-  
   std::cout << let_stmt.to_string() << std::endl;
 }
 

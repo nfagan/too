@@ -161,12 +161,13 @@ String ast::LetStatement::to_string() const {
 }
 
 String ast::UnaryExpr::to_string() const {
-  return String(too::to_string_symbol(operator_token)) + "(" + expression->to_string() + ")";
+  String expr = expression == nullptr ? "<null>" : expression->to_string();
+  return String(too::to_string_symbol(operator_token)) + "(" + expr + ")";
 }
 
 String ast::BinaryExpr::to_string() const {
-  auto left_str = left->to_string();
-  auto right_str = right->to_string();
+  auto left_str = left == nullptr ? "<null>" : left->to_string();
+  auto right_str = right == nullptr ? "<null>" : right->to_string();
   auto op = too::to_string_symbol(operator_token);
   
   auto left_wrapped = "(" + left_str + ")";
@@ -176,11 +177,31 @@ String ast::BinaryExpr::to_string() const {
 }
 
 String ast::IntLiteralExpr::to_string() const {
-  return "<int>";
+  return std::to_string(value);
 }
 
 String ast::FloatLiteralExpr::to_string() const {
-  return "<float>";
+  return std::to_string(value);
+}
+
+String ast::IdentifierLiteralExpr::to_string() const {
+  return too::to_string(name);
+}
+
+String ast::FunctionCallExpr::to_string() const {
+  String result = too::to_string(name) + "(";
+  
+  for (auto i = 0; i < input_arguments.size(); i++) {
+    result += input_arguments[i]->to_string();
+    
+    if (i < input_arguments.size()-1) {
+      result += ", ";
+    }
+  }
+  
+  result += ")";
+  
+  return result;
 }
 
 END_NAMESPACE
