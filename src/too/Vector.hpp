@@ -130,6 +130,14 @@ public:
     contents[count++] = value;
   }
   
+  void push_back(T&& value) {
+    if (count == capacity) {
+      increase_capacity();
+    }
+    
+    contents[count++] = std::move(value);
+  }
+  
   void pop_back() {
     ArrayAllocator::destroy<T>(contents+count-1, 1);
     count--;

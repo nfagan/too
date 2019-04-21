@@ -34,6 +34,8 @@ namespace too {
     LESS_EQUAL,
     GREATER,
     GREATER_EQUAL,
+    TOO_TRUE,
+    TOO_FALSE,
     WHERE,
     IF,
     ELSE,
@@ -61,7 +63,9 @@ namespace too {
   };
   
   bool is_meta(TokenType type);
+  
   const char* const to_string(TokenType token_type);
+  const char* const to_string_symbol(TokenType token_type);
 }
 
 std::ostream& operator<<(std::ostream& os, too::TokenType token_type);

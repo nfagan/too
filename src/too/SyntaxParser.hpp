@@ -9,14 +9,21 @@
 
 #include "Vector.hpp"
 #include "Token.hpp"
+#include "String.hpp"
+#include "Ast.hpp"
 
 namespace too {
   struct SyntaxError {
-    std::string message;
+    String message;
   };
   
   struct SyntaxParseResult {
-    too::Vector<SyntaxError> syntax_errors;
+    Vector<SyntaxError> syntax_errors;
+    
+    Vector<ast::FunctionDefinition> functions;
+    Vector<ast::StructDefinition> structs;
+    Vector<ast::TraitDefinition> traits;
+    
     bool had_error;
   };
   

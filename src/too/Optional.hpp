@@ -38,6 +38,10 @@ public:
     //
   }
   
+  Optional(const Optional& other) : val(other.val), is_null(other.is_null) {
+    //
+  }
+  
   ~Optional() = default;
   
   Optional& operator=(const NullOpt& other) {
@@ -54,9 +58,23 @@ public:
     return *this;
   }
   
-  Optional& operator=(Optional&& other) {
+  Optional& operator=(Optional&& other) {    
     is_null = other.is_null;
     val = std::move(other.val);
+    
+    return *this;
+  }
+  
+  Optional& operator=(const T& value) {
+    val = value;
+    is_null = false;
+    
+    return *this;
+  }
+  
+  Optional& operator=(T&& value) {
+    val = std::move(value);
+    is_null = false;
     
     return *this;
   }

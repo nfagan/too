@@ -80,6 +80,64 @@ const char* const too::to_string(too::TokenType token_type) {
     {TokenType::META_GROUP_END, "META_GROUP_END"},
     {TokenType::META_GROUP_BEGIN, "META_GROUP_BEGIN"},
     {TokenType::META_OR, "META_OR"},
+    {TokenType::TOO_TRUE, "TOO_TRUE"},
+    {TokenType::TOO_FALSE, "TOO_FALSE"}
+  };
+  
+  return token_type_to_string.at(token_type);
+}
+
+const char* const too::to_string_symbol(too::TokenType token_type) {
+  static const std::map<too::TokenType, const char* const> token_type_to_string{
+    {TokenType::COLON, ":"},
+    {TokenType::COMMA, ","},
+    {TokenType::PERIOD, "."},
+    {TokenType::SEMICOLON, ";"},
+    {TokenType::LEFT_BRACE, "{"},
+    {TokenType::RIGHT_BRACE, "}"},
+    {TokenType::LEFT_PARENS, "("},
+    {TokenType::RIGHT_PARENS, ")"},
+    {TokenType::LEFT_BRACKET, "["},
+    {TokenType::RIGHT_BRACKET, "]"},
+    {TokenType::INT_LITERAL, "<int>"},
+    {TokenType::FLOAT_LITERAL, "<float>"},
+    {TokenType::STRING_LITERAL, "<string>"},
+    {TokenType::PLUS, "+"},
+    {TokenType::MINUS, "-"},
+    {TokenType::STAR, "*"},
+    {TokenType::FORWARD_SLASH, "/"},
+    {TokenType::END, "<end>"},
+    {TokenType::LESS, "<"},
+    {TokenType::LESS_EQUAL, "<="},
+    {TokenType::GREATER, ">"},
+    {TokenType::GREATER_EQUAL, ">="},
+    {TokenType::BANG, "!"},
+    {TokenType::BANG_EQUAL, "!="},
+    {TokenType::WHERE, "where"},
+    {TokenType::IF, "if"},
+    {TokenType::ELSE, "else"},
+    {TokenType::RETURN, "return"},
+    {TokenType::FOR, "for"},
+    {TokenType::IMPL, "impl"},
+    {TokenType::FN, "fn"},
+    {TokenType::IDENTIFIER, "identifier"},
+    {TokenType::TRAIT, "trait"},
+    {TokenType::IN, "in"},
+    {TokenType::EQUAL, "="},
+    {TokenType::EQUAL_EQUAL, "=="},
+    {TokenType::STRUCT, "struct"},
+    {TokenType::LET, "let"},
+    {TokenType::RIGHT_ARROW, "->"},
+    {TokenType::SELF, "self"},
+    {TokenType::SELF_TYPE, "Self"},
+    {TokenType::TOO_TRUE, "true"},
+    {TokenType::TOO_FALSE, "false"},
+    {TokenType::META_ZERO_OR_MORE, "META_ZERO_OR_MORE"},
+    {TokenType::META_ONCE_OR_MORE, "META_ONCE_OR_MORE"},
+    {TokenType::META_ONCE_OR_NEVER, "META_ONCE_OR_NEVER"},
+    {TokenType::META_GROUP_END, "META_GROUP_END"},
+    {TokenType::META_GROUP_BEGIN, "META_GROUP_BEGIN"},
+    {TokenType::META_OR, "META_OR"}
   };
   
   return token_type_to_string.at(token_type);

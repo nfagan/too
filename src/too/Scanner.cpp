@@ -70,7 +70,9 @@ namespace {
     {"struct", TokenType::STRUCT},
     {"let", TokenType::LET},
     {"self", TokenType::SELF},
-    {"Self", TokenType::SELF_TYPE}
+    {"Self", TokenType::SELF_TYPE},
+    {"true", TokenType::TOO_TRUE},
+    {"false", TokenType::TOO_FALSE}
   };
 }
 
