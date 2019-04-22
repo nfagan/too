@@ -184,7 +184,6 @@ inline bool consume_token(TokenIterator& iterator, SyntaxParseResult& result, co
 
 Optional<ast::TypeParameter> type_parameter(TokenIterator& iterator, SyntaxParseResult& result) {
   auto next = iterator.peek();
-  
   if (next.type != TokenType::IDENTIFIER) {
     return NullOpt{};
   }
@@ -195,12 +194,10 @@ Optional<ast::TypeParameter> type_parameter(TokenIterator& iterator, SyntaxParse
   
   if (iterator.peek().type == TokenType::LESS) {
     iterator.advance(1);
-    
     Vector<ast::TypeParameter> children;
     
     while (iterator.has_next()) {
       auto type_params_result = type_parameter(iterator, result);
-      
       if (!type_params_result) {
         return NullOpt{};
       }
@@ -229,7 +226,6 @@ Optional<Vector<ast::TypeParameter>> type_parameters(TokenIterator& iterator, Sy
   
   while (iterator.has_next()) {
     auto type_param_result = type_parameter(iterator, result);
-    
     if (!type_param_result) {
       return NullOpt{};
     }
@@ -262,7 +258,6 @@ Optional<ast::Identifier> optionally_typed_identifier(TokenIterator& iterator,
     iterator.advance(1);
     
     auto type_param_result = type_parameter(iterator, result);
-    
     if (!type_param_result) {
       return NullOpt{};
     }
@@ -283,23 +278,21 @@ inline Optional<ast::Identifier> explicitly_typed_identifier(TokenIterator& iter
 
 Optional<Vector<ast::Identifier>> explicitly_typed_identifiers(TokenIterator& iterator,
                                                                SyntaxParseResult& result) {
-  
   Vector<ast::Identifier> identifiers;
   
   while (iterator.has_next()) {
     auto identifier_result = explicitly_typed_identifier(iterator, result);
-    
     if (!identifier_result) {
       return NullOpt{};
     }
     
     identifiers.push_back(identifier_result.rvalue());
     
-    if (iterator.peek().type != TokenType::COMMA) {
+    if (iterator.peek().type == TokenType::COMMA) {
+      iterator.advance(1);  // Consume ,
+    } else {
       break;
     }
-    
-    iterator.advance(1);  // Consume ,
   }
   
   return Optional<decltype(identifiers)>(std::move(identifiers));
@@ -311,7 +304,6 @@ Optional<Vector<ast::Identifier>> explicitly_typed_identifier_sequence(TokenIter
   if (iterator.peek().type == stop_token) {
     //  Empty sequence.
     iterator.advance(1);
-    
     return Optional<Vector<ast::Identifier>>(Vector<ast::Identifier>());
   }
   
@@ -332,27 +324,14 @@ Optional<Vector<ast::Identifier>> struct_members(TokenIterator& iterator, Syntax
   return explicitly_typed_identifier_sequence(iterator, result, TokenType::RIGHT_BRACE);
 }
 
-//#define USE_TOKEN_NFA
-
 Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, SyntaxParseResult& result) {
-#ifdef USE_TOKEN_NFA
-  TokenType start_sequence[2] = {TokenType::IDENTIFIER, TokenType::COLON};
-  TokenRegex pattern(&start_sequence[0], 2);
-  
-  if (!pattern.matches_iterator(iterator, 2)) {
+  if (iterator.peek().type != TokenType::IDENTIFIER || iterator.peek(1).type != TokenType::COLON) {
     return NullOpt{};
   }
-#else
-  if (iterator.peek().type != TokenType::IDENTIFIER ||
-      iterator.peek(1).type != TokenType::COLON) {
-    return NullOpt{};
-  }
-#endif
   
   ast::TraitBoundedType bounded_type;
   bounded_type.type = iterator.next().lexeme;
   iterator.advance(1);  //  Skip colon.
-  
   const auto& next = iterator.peek();
   
   if (next.type == TokenType::IDENTIFIER) {    
@@ -361,12 +340,11 @@ Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, Synt
     
   } else if (next.type != TokenType::LEFT_BRACE) {
     return NullOpt{};
-    
+
   } else {
     //  Sequence of types; consume {
     iterator.advance(1);
     auto comma_result = type_parameters(iterator, result);
-    
     if (!comma_result || !consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
       return NullOpt{};
     }
@@ -382,13 +360,11 @@ Optional<ast::WhereClause> where_clause(TokenIterator& iterator, SyntaxParseResu
   
   while (iterator.has_next()) {
     auto trait_bound_result = trait_bounded_type(iterator, result);
-    
     if (!trait_bound_result) {
       return NullOpt{};
     }
     
     const auto& val = trait_bound_result.value();
-    
     if (!val.traits.empty()) {
       clause.types.push_back(trait_bound_result.rvalue());
     }
@@ -411,14 +387,12 @@ template <typename T>
 inline bool check_assign_where(TokenIterator& iterator,
                                SyntaxParseResult& result,
                                T& assign_to) {
-  
   auto next = iterator.peek();
-  
+
   if (next.type == TokenType::WHERE) {
     iterator.advance(1);  //  consume where
     
     auto where_result = where_clause(iterator, result);
-    
     if (!where_result) {
       return false;
     }
@@ -437,7 +411,6 @@ inline bool check_assign_type_parameters(TokenIterator& iterator,
     iterator.advance(1);  //  Consume <
     
     auto maybe_type_parameters = type_parameters(iterator, result);
-    
     if (!maybe_type_parameters || !consume_token(iterator, result, TokenType::GREATER)) {
       return false;
     }
@@ -452,7 +425,6 @@ template <typename T>
 inline bool check_assign_name_and_type_parameters(TokenIterator& iterator,
                                                   SyntaxParseResult& result,
                                                   T& assign_to) {
-  
   auto next = iterator.peek();
   if (next.type != TokenType::IDENTIFIER) {
     //  @FIXME: Error, missing name
@@ -462,18 +434,13 @@ inline bool check_assign_name_and_type_parameters(TokenIterator& iterator,
   assign_to.name = next.lexeme;
   iterator.advance(1);
   
-  if (!check_assign_type_parameters(iterator, result, assign_to)) {
-    return false;
-  }
-  
-  return true;
+  return check_assign_type_parameters(iterator, result, assign_to);
 }
 
 Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
                                                       SyntaxParseResult& result,
                                                       Context& context) {
   too::ast::FunctionDefinition function_def;
-  
   if (!check_assign_name_and_type_parameters(iterator, result, function_def)) {
     return NullOpt{};
   }
@@ -485,7 +452,6 @@ Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
   
   //  Arguments
   auto maybe_arguments = function_arguments(iterator, result);
-  
   if (!maybe_arguments) {
     return NullOpt{};
   }
@@ -505,9 +471,8 @@ Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
   
   function_def.return_type.name = next.lexeme;
   function_def.context.scope = context.scope;
-  
+
   iterator.advance(1);
-  
   //  (Optional) Where clause
   if (!check_assign_where(iterator, result, function_def)) {
     return NullOpt{};
@@ -545,7 +510,6 @@ void struct_definition(TokenIterator& iterator, SyntaxParseResult& result, Conte
   
   //  Arguments
   auto maybe_members = struct_members(iterator, result);
-  
   if (!maybe_members) {
     //  Error should be marked in struct_members
     return;
@@ -580,7 +544,6 @@ void trait_definition(TokenIterator& iterator, SyntaxParseResult& result, Contex
     }
     
     auto func_result = function_definition(iterator, result, context);
-    
     if (!func_result) {
       return;
     }
@@ -599,7 +562,6 @@ void trait_definition(TokenIterator& iterator, SyntaxParseResult& result, Contex
 Optional<ast::BoxedExpr> function_call(TokenIterator& iterator,
                                        SyntaxParseResult& result,
                                        const Token& function_token) {
-  
   Vector<ast::BoxedExpr> input_arguments;
   
   while (iterator.peek().type != TokenType::RIGHT_PARENS) {
@@ -629,7 +591,6 @@ inline bool identifier_expression(TokenIterator& iterator,
                                   SyntaxParseResult& result,
                                   Vector<ast::BoxedExpr>& completed,
                                   const Token& current) {
-  
   if (iterator.peek().type == TokenType::LEFT_PARENS) {
     iterator.advance(1);
     auto func_call = function_call(iterator, result, current);
@@ -655,20 +616,20 @@ inline bool literal_expression(TokenIterator& iterator,
     
     if (!parse_result) {
       return false;
+    } else {
+      completed.push_back(std::make_unique<ast::IntLiteralExpr>(parse_result.value()));
+      return true;
     }
-    
-    completed.push_back(std::make_unique<ast::IntLiteralExpr>(parse_result.value()));
-    return true;
     
   } else if (current.type == TokenType::FLOAT_LITERAL) {
     auto parse_result = try_parse_float(current.lexeme);
     
     if (!parse_result) {
       return false;
+    } else {
+      completed.push_back(std::make_unique<ast::FloatLiteralExpr>(parse_result.value()));
+      return true;
     }
-    
-    completed.push_back(std::make_unique<ast::FloatLiteralExpr>(parse_result.value()));
-    return true;
   } else if (current.type == TokenType::STRING_LITERAL) {
     completed.push_back(std::make_unique<ast::StringLiteralExpr>(current.lexeme));
     return true;
@@ -682,12 +643,12 @@ inline bool grouping_expression(TokenIterator& iterator,
                                 Vector<ast::BoxedExpr>& completed) {
   auto expr = expression(iterator, result);
   
-  if (!expr) {
+  if (expr) {
+    completed.push_back(expr.rvalue());
+    return true;
+  } else {
     return false;
   }
-  
-  completed.push_back(expr.rvalue());
-  return true;
 }
 
 Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& result) {
