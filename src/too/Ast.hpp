@@ -15,7 +15,6 @@
 
 namespace too {
   enum class TokenType;
-  struct Identifier;
   
   namespace ast {
     struct Def {
