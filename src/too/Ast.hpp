@@ -18,8 +18,16 @@ namespace too {
   struct Identifier;
   
   namespace ast {
-    struct Def {};
-    struct Stmt {};
+    struct Def {
+      virtual String to_string() const = 0;
+      virtual ~Def() = default;
+    };
+    
+    struct Stmt {
+      virtual String to_string() const = 0;
+      virtual ~Stmt() = default;
+    };
+    
     struct Expr {
       virtual String to_string() const = 0;
       virtual ~Expr() = default;
@@ -27,6 +35,7 @@ namespace too {
     
     using BoxedExpr = std::unique_ptr<Expr>;
     using BoxedStmt = std::unique_ptr<Stmt>;
+    using BoxedDef = std::unique_ptr<Def>;
     
     struct UnaryExpr : public Expr {
       TokenType operator_token;
@@ -111,6 +120,17 @@ namespace too {
       String to_string() const override;
     };
     
+    struct StringLiteralExpr : public Expr {
+      StringView value;
+      
+      StringLiteralExpr(const StringView& value) : value(value) {}
+      
+      StringLiteralExpr() = default;
+      ~StringLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
     struct IdentifierLiteralExpr : public Expr {
       StringView name;
       
@@ -130,6 +150,7 @@ namespace too {
       
       FunctionCallExpr() = default;
       ~FunctionCallExpr() = default;
+      
       FunctionCallExpr(const StringView& name, Vector<BoxedExpr>&& args) :
       name(name), input_arguments(std::move(args)) {
         //
@@ -165,41 +186,97 @@ namespace too {
       String to_string() const;
     };
     
-    struct FunctionDefinition : public Def {
+    struct DefinitionContext {
+      int scope;
+      
+      DefinitionContext() : scope(0) {
+        //
+      }
+    };
+    
+    struct FunctionDefinition {
       StringView name;
       Vector<TypeParameter> type_parameters;
       Optional<WhereClause> where_clause;
       Vector<Identifier> input_parameters;
       TypeParameter return_type;
       
-      Optional<BoxedStmt> body;
+      DefinitionContext context;
       
       String to_string() const;
     };
     
-    struct StructDefinition : public Def {
+    struct StructDefinition {
       StringView name;
       Vector<TypeParameter> type_parameters;
       Optional<WhereClause> where_clause;
       Vector<Identifier> members;
       
+      DefinitionContext context;
+      
       String to_string() const;
     };
     
-    struct TraitDefinition : public Def {
+    struct TraitDefinition {
       StringView name;
       Vector<TypeParameter> type_parameters;
       Optional<WhereClause> where_clause;
       Vector<FunctionDefinition> functions;
       
+      DefinitionContext context;
+      
       String to_string() const;
     };
     
-    struct LetStatement : public Stmt {
+    struct LetStmt : public Stmt {
       Identifier identifier;
       Optional<BoxedExpr> initializer;
       
-      String to_string() const;
+      LetStmt(LetStmt&& other) :
+      identifier(std::move(other.identifier)),
+      initializer(std::move(other.initializer)) {
+        //
+      }
+      
+      LetStmt& operator=(LetStmt&& other) {
+        identifier = std::move(other.identifier);
+        initializer = std::move(other.initializer);
+        
+        return *this;
+      }
+      
+      LetStmt() = default;
+      ~LetStmt() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct ExprStmt : public Stmt {
+      BoxedExpr expression;
+      
+      ExprStmt() = default;
+      ~ExprStmt() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct BlockStmt : public Stmt {
+      Vector<BoxedStmt> statements;
+      
+      BlockStmt() = default;
+      ~BlockStmt() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct FunctionStmt : public Stmt {
+      int64_t definition_key;
+      BlockStmt body;
+      
+      FunctionStmt() = default;
+      ~FunctionStmt() = default;
+      
+      String to_string() const override;
     };
   }
 }

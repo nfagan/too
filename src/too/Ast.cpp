@@ -148,7 +148,7 @@ String ast::TraitDefinition::to_string() const {
   return result;
 }
 
-String ast::LetStatement::to_string() const {
+String ast::LetStmt::to_string() const {
   String result = "let " + identifier.to_string();
   
   if (initializer && initializer.value() != nullptr) {
@@ -159,6 +159,22 @@ String ast::LetStatement::to_string() const {
   
   return result;
 }
+
+String ast::ExprStmt::to_string() const {
+  return expression->to_string() + ";";
+}
+
+String ast::BlockStmt::to_string() const {
+  String result = "{\n";
+  
+  for (auto i = 0; i < statements.size(); i++) {
+    result += statements[i]->to_string();
+  }
+  
+  result += "\n}";
+  
+  return result;
+};
 
 String ast::UnaryExpr::to_string() const {
   String expr = expression == nullptr ? "<null>" : expression->to_string();
@@ -182,6 +198,10 @@ String ast::IntLiteralExpr::to_string() const {
 
 String ast::FloatLiteralExpr::to_string() const {
   return std::to_string(value);
+}
+
+String ast::StringLiteralExpr::to_string() const {
+  return "\"" + too::to_string(value) + "\"";
 }
 
 String ast::IdentifierLiteralExpr::to_string() const {

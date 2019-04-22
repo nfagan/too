@@ -81,7 +81,9 @@ const char* const too::to_string(too::TokenType token_type) {
     {TokenType::META_GROUP_BEGIN, "META_GROUP_BEGIN"},
     {TokenType::META_OR, "META_OR"},
     {TokenType::TOO_TRUE, "TOO_TRUE"},
-    {TokenType::TOO_FALSE, "TOO_FALSE"}
+    {TokenType::TOO_FALSE, "TOO_FALSE"},
+    {TokenType::LOGICAL_AND, "LOGICAL_AND"},
+    {TokenType::LOGICAL_OR, "LOGICAL_OR"}
   };
   
   return token_type_to_string.at(token_type);
@@ -132,6 +134,8 @@ const char* const too::to_string_symbol(too::TokenType token_type) {
     {TokenType::SELF_TYPE, "Self"},
     {TokenType::TOO_TRUE, "true"},
     {TokenType::TOO_FALSE, "false"},
+    {TokenType::LOGICAL_AND, "&&"},
+    {TokenType::LOGICAL_OR, "||"},
     {TokenType::META_ZERO_OR_MORE, "META_ZERO_OR_MORE"},
     {TokenType::META_ONCE_OR_MORE, "META_ONCE_OR_MORE"},
     {TokenType::META_ONCE_OR_NEVER, "META_ONCE_OR_NEVER"},

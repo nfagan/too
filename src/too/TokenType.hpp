@@ -36,6 +36,8 @@ namespace too {
     GREATER_EQUAL,
     TOO_TRUE,
     TOO_FALSE,
+    LOGICAL_AND,
+    LOGICAL_OR,
     WHERE,
     IF,
     ELSE,
