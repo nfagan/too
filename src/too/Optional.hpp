@@ -38,6 +38,10 @@ public:
     //
   }
   
+  constexpr Optional(NullOpt&& other) noexcept : Optional() {
+    //
+  }
+  
   Optional(const Optional& other) : val(other.val), is_null(other.is_null) {
     //
   }

@@ -186,45 +186,11 @@ namespace too {
     };
     
     struct DefinitionContext {
-      int scope;
+      int scope_depth;
       
-      DefinitionContext() : scope(0) {
+      DefinitionContext() : scope_depth(0) {
         //
       }
-    };
-    
-    struct FunctionDefinition {
-      StringView name;
-      Vector<TypeParameter> type_parameters;
-      Optional<WhereClause> where_clause;
-      Vector<Identifier> input_parameters;
-      TypeParameter return_type;
-      
-      DefinitionContext context;
-      
-      String to_string() const;
-    };
-    
-    struct StructDefinition {
-      StringView name;
-      Vector<TypeParameter> type_parameters;
-      Optional<WhereClause> where_clause;
-      Vector<Identifier> members;
-      
-      DefinitionContext context;
-      
-      String to_string() const;
-    };
-    
-    struct TraitDefinition {
-      StringView name;
-      Vector<TypeParameter> type_parameters;
-      Optional<WhereClause> where_clause;
-      Vector<FunctionDefinition> functions;
-      
-      DefinitionContext context;
-      
-      String to_string() const;
     };
     
     struct LetStmt : public Stmt {
@@ -256,6 +222,19 @@ namespace too {
       ExprStmt() = default;
       ~ExprStmt() = default;
       
+      ExprStmt(BoxedExpr&& expr) : expression(std::move(expr)) {
+        //
+      }
+      
+      ExprStmt(ExprStmt&& other) : expression(std::move(other.expression)) {
+        //
+      }
+      
+      ExprStmt& operator=(ExprStmt&& other) {
+        expression = std::move(other.expression);
+        return *this;
+      }
+      
       String to_string() const override;
     };
     
@@ -265,17 +244,71 @@ namespace too {
       BlockStmt() = default;
       ~BlockStmt() = default;
       
+      BlockStmt(BlockStmt&& other) : statements(std::move(other.statements)) {
+        //
+      }
+      
+      BlockStmt& operator=(BlockStmt&& other) {
+        statements = std::move(other.statements);
+        return *this;
+      }
+      
       String to_string() const override;
     };
     
-    struct FunctionStmt : public Stmt {
-      int64_t definition_key;
-      BlockStmt body;
+    struct ReturnStmt : public Stmt {
+      Optional<BoxedExpr> expression;
       
-      FunctionStmt() = default;
-      ~FunctionStmt() = default;
+      ReturnStmt() = default;
+      ~ReturnStmt() = default;
+      ReturnStmt(ReturnStmt&& other) : expression(std::move(other.expression)) {
+        //
+      }
+      ReturnStmt(BoxedExpr&& expr) : expression(std::move(expr)) {
+        //
+      }
+      
+      ReturnStmt& operator=(ReturnStmt&& other) {
+        expression = std::move(other.expression);
+        return *this;
+      }
       
       String to_string() const override;
+    };
+    
+    struct FunctionDefinition {
+      StringView name;
+      Vector<TypeParameter> type_parameters;
+      Optional<WhereClause> where_clause;
+      Vector<Identifier> input_parameters;
+      TypeParameter return_type;
+      Optional<BoxedStmt> body;
+      
+      DefinitionContext context;
+      
+      String to_string() const;
+    };
+    
+    struct StructDefinition {
+      StringView name;
+      Vector<TypeParameter> type_parameters;
+      Optional<WhereClause> where_clause;
+      Vector<Identifier> members;
+      
+      DefinitionContext context;
+      
+      String to_string() const;
+    };
+    
+    struct TraitDefinition {
+      StringView name;
+      Vector<TypeParameter> type_parameters;
+      Optional<WhereClause> where_clause;
+      Vector<FunctionDefinition> functions;
+      
+      DefinitionContext context;
+      
+      String to_string() const;
     };
   }
 }

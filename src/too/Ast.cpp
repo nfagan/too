@@ -100,9 +100,19 @@ String ast::FunctionDefinition::to_string() const {
   result += comma_separated_to_string(input_parameters);
   result += ") -> " + return_type.to_string();
   
-  if (where_clause != too::NullOpt{}) {
+  if (where_clause) {
     result += " ";
     result += where_clause.value().to_string();
+  }
+  
+  if (body) {
+    result += " ";
+    
+    if (body.value() == nullptr) {
+      result += "<null>";
+    } else {
+      result += body.value()->to_string();
+    }
   }
   
   return result;
@@ -169,12 +179,25 @@ String ast::BlockStmt::to_string() const {
   
   for (auto i = 0; i < statements.size(); i++) {
     result += statements[i]->to_string();
+    result += '\n';
   }
   
-  result += "\n}";
+  result += "}\n";
   
   return result;
-};
+}
+
+String ast::ReturnStmt::to_string() const {
+  String result = "return";
+  
+  if (expression) {
+    result += " ";
+    result += expression.value() == nullptr ? "<null>" : expression.value()->to_string();
+    result += ";";
+  }
+  
+  return result;
+}
 
 String ast::UnaryExpr::to_string() const {
   String expr = expression == nullptr ? "<null>" : expression->to_string();

@@ -76,11 +76,11 @@ namespace {
   };
 }
 
-inline bool is_recognized_single_character(Character c) {
+inline bool is_recognized_single_character(const Character& c) {
   return c.is_ascii() && SINGLE_CHAR_TO_TOKEN_TYPE.count(char(c)) > 0;
 }
 
-inline bool is_recognized_compound_punctuation_start(Character c) {
+inline bool is_recognized_compound_punctuation_start(const Character& c) {
   return c.is_ascii() && COMPOUND_PUNCTUATION_START_TO_TOKEN_TYPE.count(char(c)) > 0;
 }
 
@@ -88,11 +88,11 @@ inline bool is_recognized_keyword(StringView view) {
   return KEYWORD_TO_TOKEN_TYPE.count(view) > 0;
 }
 
-inline TokenType get_single_character_token_type(Character c) {
+inline TokenType get_single_character_token_type(const Character& c) {
   return SINGLE_CHAR_TO_TOKEN_TYPE.at(char(c));
 }
 
-inline TokenType get_single_character_with_equal_token_type(Character c) {
+inline TokenType get_single_character_with_equal_token_type(const Character& c) {
   return COMPOUND_PUNCTUATION_START_TO_TOKEN_TYPE.at(char(c));
 }
 
@@ -100,11 +100,11 @@ inline TokenType get_keyword_token_type(StringView view) {
   return KEYWORD_TO_TOKEN_TYPE.at(view);
 }
 
-inline int64_t current_index(const CharacterIterator& iterator, Character last_char) {
+inline int64_t current_index(const CharacterIterator& iterator, const Character& last_char) {
   return iterator.next_index() - last_char.count_units();
 }
 
-inline Token make_token(const CharacterIterator& iterator, Character last_char, TokenType type, int64_t len) {
+inline Token make_token(const CharacterIterator& iterator, const Character& last_char, TokenType type, int64_t len) {
   return Token{type, make_string_view(iterator.data(), current_index(iterator, last_char), len)};
 }
 
@@ -112,7 +112,7 @@ inline Token make_token(const CharacterIterator& iterator, TokenType type, int64
   return Token{type, make_string_view(iterator.data(), start, len)};
 }
 
-inline ScanError make_unrecognized_symbol_error(CharacterIterator& iterator, Character last_char) {
+inline ScanError make_unrecognized_symbol_error(CharacterIterator& iterator, const Character& last_char) {
   const int64_t begin = current_index(iterator, last_char);
   const int64_t end = begin + 1;
   
@@ -143,7 +143,7 @@ inline int64_t consume_digits(CharacterIterator& iterator, bool* ended_on_decima
   return n_digits;
 }
 
-void number_literal(CharacterIterator& iterator, ScanResult& result, Character last_char) {
+void number_literal(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
   int64_t number_str_len = 1;
   int64_t number_start = current_index(iterator, last_char);
   TokenType number_literal_type = TokenType::INT_LITERAL;
@@ -160,7 +160,7 @@ void number_literal(CharacterIterator& iterator, ScanResult& result, Character l
   result.tokens.push_back(make_token(iterator, number_literal_type, number_start, number_str_len));
 }
 
-void string_literal(CharacterIterator& iterator, ScanResult& result, Character last_char) {
+void string_literal(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
   int64_t n_bytes = 0;
   int64_t str_start = iterator.next_index();
   
@@ -191,7 +191,7 @@ void string_literal(CharacterIterator& iterator, ScanResult& result, Character l
   }
 }
 
-void identifier(CharacterIterator& iterator, ScanResult& result, Character last_char) {
+inline void identifier(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
   const int64_t begin = current_index(iterator, last_char);
   int64_t identifier_n_bytes = last_char.count_units();
   
@@ -216,7 +216,7 @@ void identifier(CharacterIterator& iterator, ScanResult& result, Character last_
   result.tokens.push_back(make_token(iterator, token_type, begin, identifier_n_bytes));
 }
 
-bool is_compound_punctuation(const CharacterIterator& iterator, Character last_char) {
+bool is_compound_punctuation(const CharacterIterator& iterator, const Character& last_char) {
   auto next_char = iterator.peek();
   
   //  compound punctuation: !=, ==, ->, etc.
@@ -233,7 +233,7 @@ bool is_compound_punctuation(const CharacterIterator& iterator, Character last_c
   }
 }
 
-void punctuation(CharacterIterator& iterator, ScanResult& result, Character c) {
+void punctuation(CharacterIterator& iterator, ScanResult& result, const Character c) {
   auto token_type = get_single_character_token_type(c);
   int64_t n_characters = 1;
   bool is_compound_punct = is_compound_punctuation(iterator, c);
@@ -250,7 +250,7 @@ void punctuation(CharacterIterator& iterator, ScanResult& result, Character c) {
   }
 }
 
-void comment(CharacterIterator& iterator, ScanResult& result, Character last_char) {
+void comment(CharacterIterator& iterator, ScanResult& result, const Character& last_char) {
   while (iterator.has_next()) {
     auto c = iterator.peek();
     

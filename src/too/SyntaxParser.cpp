@@ -18,22 +18,23 @@
 BEGIN_NAMESPACE
 
 struct Context {
-  int scope;
+  int scope_depth;
   
-  Context() : scope(0) {
+  Context() : scope_depth(0) {
     //
   }
   
   void increment_scope() {
-    scope++;
+    scope_depth++;
   }
   
   void decrement_scope() {
-    scope--;
+    scope_depth--;
   }
 };
 
 Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& result);
+Optional<ast::BoxedStmt> block_statement(TokenIterator& iterator, SyntaxParseResult& result, Context& context);
 
 template <typename T, typename... Args>
 inline Optional<ast::BoxedExpr> make_optional_boxed_expr(Args&&... args) {
@@ -440,6 +441,7 @@ inline bool check_assign_name_and_type_parameters(TokenIterator& iterator,
 Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
                                                       SyntaxParseResult& result,
                                                       Context& context) {
+  
   too::ast::FunctionDefinition function_def;
   if (!check_assign_name_and_type_parameters(iterator, result, function_def)) {
     return NullOpt{};
@@ -470,7 +472,7 @@ Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
   }
   
   function_def.return_type.name = next.lexeme;
-  function_def.context.scope = context.scope;
+  function_def.context.scope_depth = context.scope_depth;
 
   iterator.advance(1);
   //  (Optional) Where clause
@@ -484,6 +486,14 @@ Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
       //  @FIXME: Expect left brace (opening to function body)
       return NullOpt{};
     }
+    
+    auto body = block_statement(iterator, result, context);
+    if (!body) {
+      return NullOpt{};
+    } else {
+      function_def.body = body.rvalue();
+    }
+    
   } else {
     iterator.advance(1);  //  Consume ;
   }
@@ -492,6 +502,8 @@ Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
 }
 
 void struct_definition(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
+  iterator.advance(1);  //  consume struct.
+  
   too::ast::StructDefinition struct_def;
   
   if (!check_assign_name_and_type_parameters(iterator, result, struct_def)) {
@@ -516,12 +528,14 @@ void struct_definition(TokenIterator& iterator, SyntaxParseResult& result, Conte
   }
   
   struct_def.members = maybe_members.rvalue();
-  struct_def.context.scope = context.scope;
+  struct_def.context.scope_depth = context.scope_depth;
   
   result.structs.push_back(struct_def);
 }
 
 void trait_definition(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
+  iterator.advance(1);  //  consume trait.
+  
   too::ast::TraitDefinition trait_def;
   
   if (!check_assign_name_and_type_parameters(iterator, result, trait_def)) {
@@ -555,7 +569,7 @@ void trait_definition(TokenIterator& iterator, SyntaxParseResult& result, Contex
     return;
   }
   
-  trait_def.context.scope = context.scope;
+  trait_def.context.scope_depth = context.scope_depth;
   result.traits.push_back(std::move(trait_def));
 }
 
@@ -580,7 +594,7 @@ Optional<ast::BoxedExpr> function_call(TokenIterator& iterator,
     }
   }
   
-  if (input_arguments.empty() && !consume_token(iterator, result, TokenType::RIGHT_PARENS)) {
+  if (!consume_token(iterator, result, TokenType::RIGHT_PARENS)) {
     return NullOpt{};
   }
   
@@ -591,7 +605,10 @@ inline bool identifier_expression(TokenIterator& iterator,
                                   SyntaxParseResult& result,
                                   Vector<ast::BoxedExpr>& completed,
                                   const Token& current) {
-  if (iterator.peek().type == TokenType::LEFT_PARENS) {
+  iterator.advance(1);  //  consume identifier.
+  
+  const auto next_type = iterator.peek().type;
+  if (next_type == TokenType::LEFT_PARENS) {
     iterator.advance(1);
     auto func_call = function_call(iterator, result, current);
     
@@ -600,6 +617,10 @@ inline bool identifier_expression(TokenIterator& iterator,
     }
     
     completed.push_back(func_call.rvalue());
+  } else if (next_type == TokenType::EQUAL) {
+    iterator.advance(1);
+    return false;
+    
   } else {
     completed.push_back(std::make_unique<ast::IdentifierLiteralExpr>(current.lexeme));
   }
@@ -611,6 +632,8 @@ inline bool literal_expression(TokenIterator& iterator,
                                SyntaxParseResult& result,
                                Vector<ast::BoxedExpr>& completed,
                                const Token& current) {
+  iterator.advance(1);  //  consume literal.
+  
   if (current.type == TokenType::INT_LITERAL) {
     auto parse_result = try_parse_int(current.lexeme);
     
@@ -641,14 +664,15 @@ inline bool literal_expression(TokenIterator& iterator,
 inline bool grouping_expression(TokenIterator& iterator,
                                 SyntaxParseResult& result,
                                 Vector<ast::BoxedExpr>& completed) {
-  auto expr = expression(iterator, result);
+  iterator.advance(1);  //  Consume (
   
-  if (expr) {
-    completed.push_back(expr.rvalue());
-    return true;
-  } else {
+  auto expr = expression(iterator, result);
+  if (!expr || !consume_token(iterator, result, TokenType::RIGHT_PARENS)) {
     return false;
   }
+  
+  completed.push_back(expr.rvalue());
+  return true;
 }
 
 Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& result) {
@@ -662,22 +686,16 @@ Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& 
     auto next = iterator.peek();
     
     if (next.type == TokenType::LEFT_PARENS) {
-      iterator.advance(1);
-      
       if (!grouping_expression(iterator, result, completed)) {
         return NullOpt{};
       }
       
     } else if (next.type == TokenType::IDENTIFIER) {
-      iterator.advance(1);
-      
       if (!identifier_expression(iterator, result, completed, next)) {
         return NullOpt{};
       }
       
     } else if (is_literal_token_type(next.type)) {
-      iterator.advance(1);
-      
       if (!literal_expression(iterator, result, completed, next)) {
         return NullOpt{};
       }
@@ -698,12 +716,11 @@ Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& 
       binaries.push_back(std::make_unique<ast::BinaryExpr>(next.type, std::move(left), nullptr));
       completed.pop_back();
       
-    } else if (next.type == TokenType::SEMICOLON || next.type == TokenType::RIGHT_PARENS) {
-      iterator.advance(1);
+    } else if (next.type == TokenType::RIGHT_PARENS) {
       break;
       
     } else {
-      if (next.type == TokenType::COMMA) {
+      if (next.type == TokenType::COMMA || next.type == TokenType::SEMICOLON) {
         break;
       } else {
         return NullOpt{};
@@ -757,20 +774,19 @@ Optional<ast::BoxedExpr> expression(TokenIterator& iterator, SyntaxParseResult& 
 }
 
 Optional<ast::BoxedStmt> let_statement(TokenIterator& iterator, SyntaxParseResult& result) {
+  iterator.advance(1);  //  consume let.
+  
+  ast::LetStmt let_stmt;
   //  true -> allow untyped.
   auto identifier = optionally_typed_identifier(iterator, result, true);
-  
   if (!identifier) {
     return NullOpt{};
   }
-  
-  ast::LetStmt let_stmt;
   
   if (iterator.peek().type == TokenType::EQUAL) {
     iterator.advance(1);  //  consume =
     
     auto initializer = expression(iterator, result);
-    
     if (!initializer) {
       return NullOpt{};
     }
@@ -778,21 +794,121 @@ Optional<ast::BoxedStmt> let_statement(TokenIterator& iterator, SyntaxParseResul
     let_stmt.initializer = std::move(initializer);
   }
   
+  if (!consume_token(iterator, result, TokenType::SEMICOLON)) {
+    return NullOpt{};
+  }
+  
   let_stmt.identifier = identifier.rvalue();
   return make_optional_boxed_stmt<ast::LetStmt>(std::move(let_stmt));
 }
 
-void block_statement(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
+Optional<ast::BoxedStmt> return_statement(TokenIterator& iterator, SyntaxParseResult& result) {
+  iterator.advance(1);  //  consume return.
+  
+  if (iterator.peek().type == TokenType::SEMICOLON) {
+    iterator.advance(1);
+    return make_optional_boxed_stmt<ast::ReturnStmt>();
+  }
+  
+  auto expr = expression(iterator, result);
+  if (!expr || !consume_token(iterator, result, TokenType::SEMICOLON)) {
+    return NullOpt{};
+  }
+  
+  return make_optional_boxed_stmt<ast::ReturnStmt>(expr.rvalue());
+}
+
+Optional<ast::BoxedStmt> expression_statement(TokenIterator& iterator, SyntaxParseResult& result) {
+  auto expression_res = expression(iterator, result);
+  
+  if (!expression_res || !consume_token(iterator, result, TokenType::SEMICOLON)) {
+    //  Expect semicolon
+    return NullOpt{};
+  }
+    
+  return make_optional_boxed_stmt<ast::ExprStmt>(expression_res.rvalue());
+}
+
+bool check_assign_function_definition(TokenIterator& iterator,
+                                      SyntaxParseResult& result,
+                                      Context& context) {
+  iterator.advance(1);
+  
+  auto func_res = function_definition(iterator, result, context);
+  if (func_res) {
+    result.functions.push_back(func_res.rvalue());
+    return true;
+  }
+  
+  return false;
+}
+
+bool check_assign_let_statement(TokenIterator& iterator,
+                                SyntaxParseResult& result,
+                                ast::BlockStmt& assign_to) {
+  auto statement_res = let_statement(iterator, result);
+  if (statement_res) {
+    assign_to.statements.push_back(statement_res.rvalue());
+    return true;
+  }
+  
+  return false;
+}
+
+bool check_assign_block_statement(TokenIterator& iterator,
+                                  SyntaxParseResult& result,
+                                  Context& context,
+                                  ast::BlockStmt& assign_to) {
+  iterator.advance(1);
+  
+  auto block_res = block_statement(iterator, result, context);
+  if (block_res) {
+    assign_to.statements.push_back(block_res.rvalue());
+    return true;
+  }
+  
+  return false;
+}
+
+bool check_assign_return_statement(TokenIterator& iterator,
+                                   SyntaxParseResult& result,
+                                   Context& context,
+                                   ast::BlockStmt& assign_to) {
+  auto return_res = return_statement(iterator, result);
+  if (return_res) {
+    assign_to.statements.push_back(return_res.rvalue());
+    return true;
+  }
+  
+  return false;
+}
+
+bool check_assign_expression_statement(TokenIterator& iterator,
+                                       SyntaxParseResult& result,
+                                       Context& context,
+                                       ast::BlockStmt& assign_to) {
+  auto statement_res = expression_statement(iterator, result);
+  if (statement_res) {
+    assign_to.statements.push_back(statement_res.rvalue());
+    return true;
+  }
+  
+  return false;
+}
+
+Optional<ast::BoxedStmt> block_statement(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
   context.increment_scope();
   
+  ast::BlockStmt block_stmt;
+  bool is_ok = true;
+  
   while (iterator.has_next()) {
-    const auto& token = iterator.next();
+    const auto& token = iterator.peek();
     
     if (token.type == TokenType::FN) {
-      auto func_res = function_definition(iterator, result, context);
-      
-      if (func_res) {
-        result.functions.push_back(func_res.rvalue());
+      if (!check_assign_function_definition(iterator, result, context)) {
+        is_ok = false;
+        break;
       }
       
     } else if (token.type == TokenType::STRUCT) {
@@ -802,22 +918,73 @@ void block_statement(TokenIterator& iterator, SyntaxParseResult& result, Context
       trait_definition(iterator, result, context);
       
     } else if (token.type == TokenType::LET) {
-      let_statement(iterator, result);
+      if (!check_assign_let_statement(iterator, result, block_stmt)) {
+        is_ok = false;
+        break;
+      }
+      
+    } else if (token.type == TokenType::LEFT_BRACE) {
+      if (!check_assign_block_statement(iterator, result, context, block_stmt)) {
+        is_ok = false;
+        break;
+      }
+      
+    } else if (token.type == TokenType::RETURN) {
+      if (!check_assign_return_statement(iterator, result, context, block_stmt)) {
+        is_ok = false;
+        break;
+      }
+      
+    } else if (token.type == TokenType::RIGHT_BRACE) {
+      break;
+      
+    } else if (token.type == TokenType::SEMICOLON) {
+      iterator.advance(1);
+      
     } else {
-      return;
+      if (!check_assign_expression_statement(iterator, result, context, block_stmt)) {
+        iterator.advance(1);
+        is_ok = false;
+        break;
+      }
     }
+  }
+  
+  if (!consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
+    is_ok = false;
+  }
+  
+  context.decrement_scope();
+  
+  if (!is_ok) {
+    return NullOpt{};
+  } else {
+    return make_optional_boxed_stmt<ast::BlockStmt>(std::move(block_stmt));
   }
 }
 
 SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {
   SyntaxParseResult result;
+  
   too::TokenIterator iterator(tokens.data(), tokens.size());
   Context context;
+  ast::BlockStmt root;
   
   while (iterator.has_next()) {
-    block_statement(iterator, result, context);
-    context.decrement_scope();
+    auto block_res = block_statement(iterator, result, context);
+    
+    if (block_res) {
+      root.statements.push_back(block_res.rvalue());
+    }
   }
+//  
+//  for (auto i = 0; i < result.functions.size(); i++) {
+//    std::cout << result.functions[i].to_string() << std::endl;
+//  }
+//
+//  for (auto i = 0; i < result.traits.size(); i++) {
+//    std::cout << result.traits[i].to_string() << std::endl;
+//  }
   
   return result;
 }
