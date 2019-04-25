@@ -29,6 +29,21 @@ String delimited_list_to_string(const Vector<T>& values, const char* const delim
 }
 
 template <typename T>
+String delimited_boxed_list_to_string(const Vector<T>& values, const char* const delimiter) {
+  String result;
+  
+  for (auto i = 0; i < values.size(); i++) {
+    result += values[i]->to_string();
+    
+    if (i < values.size()-1) {
+      result += delimiter;
+    }
+  }
+  
+  return result;
+}
+
+template <typename T>
 String comma_separated_to_string(const Vector<T>& values) {
   return delimited_list_to_string(values, ", ");
 }
@@ -233,16 +248,38 @@ String ast::IdentifierLiteralExpr::to_string() const {
 
 String ast::FunctionCallExpr::to_string() const {
   String result = too::to_string(name) + "(";
+  result += delimited_boxed_list_to_string(input_arguments, ", ");
+  result += ")";
   
-  for (auto i = 0; i < input_arguments.size(); i++) {
-    result += input_arguments[i]->to_string();
-    
-    if (i < input_arguments.size()-1) {
-      result += ", ";
-    }
+  return result;
+}
+
+String ast::AnonymousFunctionCallExpr::to_string() const {
+  String result = function == nullptr ? "<null>" : function->to_string();
+  
+  result += "(";
+  result += delimited_boxed_list_to_string(input_arguments, ", ");
+  result += ")";
+  
+  return result;
+}
+
+String ast::ContentsReferenceExpr::to_string() const {
+  String result = target_expression == nullptr ? "<null>" : target_expression->to_string();
+  result += too::to_string_symbol(operator_token);
+  result += (reference_expression == nullptr ? "<null>" : reference_expression->to_string());
+  
+  if (operator_token == TokenType::LEFT_BRACKET) {
+    result += too::to_string_symbol(TokenType::RIGHT_BRACKET);
   }
   
-  result += ")";
+  return result;
+}
+
+String ast::AssignmentExpr::to_string() const {
+  String result = target_expression == nullptr ? "<null>" : target_expression->to_string();
+  result += " = ";
+  result += (assignment_expression == nullptr ? "<null>" : assignment_expression->to_string());
   
   return result;
 }

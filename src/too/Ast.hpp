@@ -158,6 +158,31 @@ namespace too {
       String to_string() const override;
     };
     
+    struct AnonymousFunctionCallExpr : public Expr {
+      BoxedExpr function;
+      Vector<BoxedExpr> input_arguments;
+      
+      String to_string() const override;
+    };
+    
+    struct ContentsReferenceExpr : public Expr {
+      BoxedExpr target_expression;
+      BoxedExpr reference_expression;
+      TokenType operator_token;
+      
+      ContentsReferenceExpr() = default;
+      ~ContentsReferenceExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct AssignmentExpr : public Expr {
+      BoxedExpr target_expression;
+      BoxedExpr assignment_expression;
+      
+      String to_string() const override;
+    };
+    
     struct TypeParameter {
       StringView name;
       Optional<Vector<TypeParameter>> parameters;

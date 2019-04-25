@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
   if (argc > 1) {
     code = read_file(argv[1]);
   } else {
-    code = read_file("/Users/Nick/repositories/lang/too1/data/scripts/large.rs");
+    code = read_file("/Users/Nick/repositories/lang/too1/data/scripts/block.rs");
   }
   
   if (!too::utf8::is_valid(code.c_str(), code.size())) {
