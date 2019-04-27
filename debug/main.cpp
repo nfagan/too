@@ -9,13 +9,25 @@
 #include <chrono>
 
 namespace {
-  void print_parse_result(const too::SyntaxParseResult& parse_result) {
-    std::cout << parse_result.functions.size() << " functions." << std::endl;
-    std::cout << parse_result.structs.size() << " structs." << std::endl;
-    std::cout << parse_result.traits.size() << " traits." << std::endl;
+  void print_parse_result(const too::SyntaxParseResult& result) {
+    std::cout << result.functions.size() << " functions." << std::endl;
+    std::cout << result.structs.size() << " structs." << std::endl;
+    std::cout << result.traits.size() << " traits." << std::endl;
+    
+    for (auto i = 0; i < result.functions.size(); i++) {
+      std::cout << result.functions[i].to_string() << std::endl;
+    }
+    
+    for (auto i = 0; i < result.traits.size(); i++) {
+      std::cout << result.traits[i].to_string() << std::endl;
+    }
+    
+    for (auto i = 0; i < result.structs.size(); i++) {
+      std::cout << result.structs[i].to_string() << std::endl;
+    }
   }
   
-  void print_result(const too::ScanResult& scan_result) {
+  void print_scan_result(const too::ScanResult& scan_result) {
     too::print_tokens(scan_result.tokens);
     
     std::cout << "Had error ? " << std::boolalpha << scan_result.had_error << std::endl;

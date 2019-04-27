@@ -1234,18 +1234,6 @@ SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {
       root.statements.push_back(block_res.rvalue());
     }
   }
-
-  for (auto i = 0; i < result.functions.size(); i++) {
-    std::cout << result.functions[i].to_string() << std::endl;
-  }
-
-  for (auto i = 0; i < result.traits.size(); i++) {
-    std::cout << result.traits[i].to_string() << std::endl;
-  }
-  
-  for (auto i = 0; i < result.structs.size(); i++) {
-    std::cout << result.structs[i].to_string() << std::endl;
-  }
   
   return result;
 }
