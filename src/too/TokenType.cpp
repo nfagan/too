@@ -34,6 +34,8 @@ bool too::is_meta(too::TokenType type) {
 const char* const too::to_string(too::TokenType token_type) {
   static const std::map<too::TokenType, const char* const> token_type_to_string{
     {TokenType::COLON, "COLON"},
+    {TokenType::DOUBLE_COLON, "DOUBLE_COLON"},
+    {TokenType::COLON_EQUAL, "COLON_EQUAL"},
     {TokenType::COMMA, "COMMA"},
     {TokenType::PERIOD, "PERIOD"},
     {TokenType::SEMICOLON, "SEMICOLON"},
@@ -92,6 +94,8 @@ const char* const too::to_string(too::TokenType token_type) {
 const char* const too::to_string_symbol(too::TokenType token_type) {
   static const std::map<too::TokenType, const char* const> token_type_to_string{
     {TokenType::COLON, ":"},
+    {TokenType::DOUBLE_COLON, "::"},
+    {TokenType::COLON_EQUAL, ":="},
     {TokenType::COMMA, ","},
     {TokenType::PERIOD, "."},
     {TokenType::SEMICOLON, ";"},

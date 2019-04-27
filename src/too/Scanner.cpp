@@ -219,6 +219,10 @@ inline void identifier(CharacterIterator& iterator, ScanResult& result, const Ch
 bool is_compound_punctuation(const CharacterIterator& iterator, const Character& last_char) {
   auto next_char = iterator.peek();
   
+  if (last_char == ':' && (next_char == ':' || next_char == '=')) {
+    return true;
+  }
+  
   //  compound punctuation: !=, ==, ->, etc.
   if ((next_char != '=' && next_char != '>') || !is_recognized_compound_punctuation_start(last_char)) {
     return false;
@@ -233,13 +237,26 @@ bool is_compound_punctuation(const CharacterIterator& iterator, const Character&
   }
 }
 
-void punctuation(CharacterIterator& iterator, ScanResult& result, const Character c) {
+inline TokenType get_compound_punctuation_token_type(const Character& current, const Character& next) {
+  if (current != ':') {
+    return get_single_character_with_equal_token_type(current);
+  } else if (next == ':') {
+    return TokenType::DOUBLE_COLON;
+  } else if (next == '=') {
+    return TokenType::COLON_EQUAL;
+  } else {
+    assert(false);
+    return TokenType::END;
+  }
+}
+
+void punctuation(CharacterIterator& iterator, ScanResult& result, const Character& c) {
   auto token_type = get_single_character_token_type(c);
   int64_t n_characters = 1;
   bool is_compound_punct = is_compound_punctuation(iterator, c);
   
   if (is_compound_punct) {
-    token_type = get_single_character_with_equal_token_type(c);
+    token_type = get_compound_punctuation_token_type(c, iterator.peek());
     n_characters = 2;
   }
   

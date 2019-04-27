@@ -12,6 +12,8 @@
 namespace too {
   enum class TokenType {
     COLON,
+    DOUBLE_COLON,
+    COLON_EQUAL,
     COMMA,
     PERIOD,
     SEMICOLON,

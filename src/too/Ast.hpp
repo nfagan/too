@@ -36,153 +36,6 @@ namespace too {
     using BoxedStmt = std::unique_ptr<Stmt>;
     using BoxedDef = std::unique_ptr<Def>;
     
-    struct UnaryExpr : public Expr {
-      TokenType operator_token;
-      BoxedExpr expression;
-      
-      UnaryExpr() : expression(nullptr) {
-        //
-      }
-      
-      ~UnaryExpr() = default;
-      
-      UnaryExpr(UnaryExpr&& other) :
-        operator_token(other.operator_token),
-        expression(std::move(other.expression)) {
-        //
-      }
-      
-      UnaryExpr(TokenType op, BoxedExpr&& expr) : operator_token(op), expression(std::move(expr)) {
-        //
-      }
-      
-      UnaryExpr& operator=(UnaryExpr&& other) {
-        operator_token = other.operator_token;
-        expression = std::move(other.expression);
-        
-        return *this;
-      }
-      
-      String to_string() const override;
-    };
-    
-    struct BinaryExpr : public Expr {
-      TokenType operator_token;
-      BoxedExpr left;
-      BoxedExpr right;
-      
-      BinaryExpr() = default;
-      ~BinaryExpr() = default;
-      
-      BinaryExpr& operator=(BinaryExpr&& other) {
-        operator_token = other.operator_token;
-        left = std::move(other.left);
-        right = std::move(other.right);
-        
-        return *this;
-      }
-      
-      BinaryExpr(BinaryExpr&& other) :
-        operator_token(other.operator_token),
-        left(std::move(other.left)),
-        right(std::move(other.right)) {
-          //
-      }
-      
-      BinaryExpr(TokenType op, BoxedExpr&& left, BoxedExpr&& right) :
-        operator_token(op), left(std::move(left)), right(std::move(right)) {
-          //
-      }
-      
-      String to_string() const override;
-    };
-    
-    struct IntLiteralExpr : public Expr {
-      TooInteger value;
-      
-      IntLiteralExpr(TooInteger value) : value(value) {}
-      
-      IntLiteralExpr() = default;
-      ~IntLiteralExpr() = default;
-      
-      String to_string() const override;
-    };
-    
-    struct FloatLiteralExpr : public Expr {
-      TooFloat value;
-      
-      FloatLiteralExpr(TooFloat value) : value(value) {}
-      
-      FloatLiteralExpr() = default;
-      ~FloatLiteralExpr() = default;
-      
-      String to_string() const override;
-    };
-    
-    struct StringLiteralExpr : public Expr {
-      StringView value;
-      
-      StringLiteralExpr(const StringView& value) : value(value) {}
-      
-      StringLiteralExpr() = default;
-      ~StringLiteralExpr() = default;
-      
-      String to_string() const override;
-    };
-    
-    struct IdentifierLiteralExpr : public Expr {
-      StringView name;
-      
-      IdentifierLiteralExpr() = default;
-      IdentifierLiteralExpr(const StringView& name) : name(name) {
-        //
-      }
-      
-      ~IdentifierLiteralExpr() = default;
-      
-      String to_string() const override;
-    };
-    
-    struct FunctionCallExpr : public Expr {
-      StringView name;
-      Vector<BoxedExpr> input_arguments;
-      
-      FunctionCallExpr() = default;
-      ~FunctionCallExpr() = default;
-      
-      FunctionCallExpr(const StringView& name, Vector<BoxedExpr>&& args) :
-      name(name), input_arguments(std::move(args)) {
-        //
-      }
-      
-      String to_string() const override;
-    };
-    
-    struct AnonymousFunctionCallExpr : public Expr {
-      BoxedExpr function;
-      Vector<BoxedExpr> input_arguments;
-      
-      String to_string() const override;
-    };
-    
-    struct ContentsReferenceExpr : public Expr {
-      BoxedExpr target_expression;
-      BoxedExpr reference_expression;
-      TokenType operator_token;
-      
-      ContentsReferenceExpr() = default;
-      ~ContentsReferenceExpr() = default;
-      
-      String to_string() const override;
-    };
-    
-    struct AssignmentExpr : public Expr {
-      BoxedExpr target_expression;
-      BoxedExpr assignment_expression;
-      
-      String to_string() const override;
-    };
-    
     struct TypeParameter {
       StringView name;
       Optional<Vector<TypeParameter>> parameters;
@@ -301,12 +154,18 @@ namespace too {
       String to_string() const override;
     };
     
-    struct FunctionDefinition {
+    struct DefinitionHeader {
       StringView name;
       Vector<TypeParameter> type_parameters;
+      
+      String to_string() const;
+    };
+    
+    struct FunctionDefinition {
+      DefinitionHeader header;
       Optional<WhereClause> where_clause;
       Vector<Identifier> input_parameters;
-      TypeParameter return_type;
+      Optional<TypeParameter> return_type;
       Optional<BoxedStmt> body;
       
       DefinitionContext context;
@@ -315,8 +174,7 @@ namespace too {
     };
     
     struct StructDefinition {
-      StringView name;
-      Vector<TypeParameter> type_parameters;
+      DefinitionHeader header;
       Optional<WhereClause> where_clause;
       Vector<Identifier> members;
       
@@ -326,14 +184,178 @@ namespace too {
     };
     
     struct TraitDefinition {
-      StringView name;
-      Vector<TypeParameter> type_parameters;
+      DefinitionHeader header;
       Optional<WhereClause> where_clause;
       Vector<FunctionDefinition> functions;
       
       DefinitionContext context;
       
       String to_string() const;
+    };
+    
+    struct UnaryExpr : public Expr {
+      TokenType operator_token;
+      BoxedExpr expression;
+      
+      UnaryExpr() : expression(nullptr) {
+        //
+      }
+      
+      ~UnaryExpr() = default;
+      
+      UnaryExpr(UnaryExpr&& other) :
+      operator_token(other.operator_token),
+      expression(std::move(other.expression)) {
+        //
+      }
+      
+      UnaryExpr(TokenType op, BoxedExpr&& expr) : operator_token(op), expression(std::move(expr)) {
+        //
+      }
+      
+      UnaryExpr& operator=(UnaryExpr&& other) {
+        operator_token = other.operator_token;
+        expression = std::move(other.expression);
+        
+        return *this;
+      }
+      
+      String to_string() const override;
+    };
+    
+    struct BinaryExpr : public Expr {
+      TokenType operator_token;
+      BoxedExpr left;
+      BoxedExpr right;
+      
+      BinaryExpr() = default;
+      ~BinaryExpr() = default;
+      
+      BinaryExpr& operator=(BinaryExpr&& other) {
+        operator_token = other.operator_token;
+        left = std::move(other.left);
+        right = std::move(other.right);
+        
+        return *this;
+      }
+      
+      BinaryExpr(BinaryExpr&& other) :
+      operator_token(other.operator_token),
+      left(std::move(other.left)),
+      right(std::move(other.right)) {
+        //
+      }
+      
+      BinaryExpr(TokenType op, BoxedExpr&& left, BoxedExpr&& right) :
+      operator_token(op), left(std::move(left)), right(std::move(right)) {
+        //
+      }
+      
+      String to_string() const override;
+    };
+    
+    struct IntLiteralExpr : public Expr {
+      TooInteger value;
+      
+      IntLiteralExpr(TooInteger value) : value(value) {}
+      
+      IntLiteralExpr() = default;
+      ~IntLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct FloatLiteralExpr : public Expr {
+      TooFloat value;
+      
+      FloatLiteralExpr(TooFloat value) : value(value) {}
+      
+      FloatLiteralExpr() = default;
+      ~FloatLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct StringLiteralExpr : public Expr {
+      StringView value;
+      
+      StringLiteralExpr(const StringView& value) : value(value) {}
+      
+      StringLiteralExpr() = default;
+      ~StringLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct IdentifierLiteralExpr : public Expr {
+      StringView name;
+      
+      IdentifierLiteralExpr() = default;
+      IdentifierLiteralExpr(const StringView& name) : name(name) {
+        //
+      }
+      
+      ~IdentifierLiteralExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct ElseExpr : public Expr {
+      BlockStmt else_block;
+      BoxedExpr else_expression;
+      
+      String to_string() const override;
+    };
+    
+    struct IfExpr : public Expr {
+      BoxedExpr condition;
+      BlockStmt if_block;
+      BoxedExpr if_expression;
+      
+      Optional<Vector<IfExpr>> else_if_blocks;
+      Optional<ElseExpr> else_expression;
+      
+      String to_string() const override;
+    };
+    
+    struct FunctionCallExpr : public Expr {
+      StringView name;
+      Vector<BoxedExpr> input_arguments;
+      
+      FunctionCallExpr() = default;
+      ~FunctionCallExpr() = default;
+      
+      FunctionCallExpr(const StringView& name, Vector<BoxedExpr>&& args) :
+      name(name), input_arguments(std::move(args)) {
+        //
+      }
+      
+      String to_string() const override;
+    };
+    
+    struct AnonymousFunctionCallExpr : public Expr {
+      BoxedExpr function;
+      Vector<BoxedExpr> input_arguments;
+      
+      String to_string() const override;
+    };
+    
+    struct ContentsReferenceExpr : public Expr {
+      BoxedExpr target_expression;
+      BoxedExpr reference_expression;
+      TokenType operator_token;
+      
+      ContentsReferenceExpr() = default;
+      ~ContentsReferenceExpr() = default;
+      
+      String to_string() const override;
+    };
+    
+    struct AssignmentExpr : public Expr {
+      BoxedExpr target_expression;
+      BoxedExpr assignment_expression;
+      
+      String to_string() const override;
     };
   }
 }

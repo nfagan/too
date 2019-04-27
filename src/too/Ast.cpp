@@ -102,18 +102,26 @@ String ast::WhereClause::to_string() const {
   return ("where " + comma_separated_to_string(types));
 }
 
-String ast::FunctionDefinition::to_string() const {
-  String result = "fn ";
-  
-  result += too::to_string(name);
+String ast::DefinitionHeader::to_string() const {
+  String result = too::to_string(name);
   
   if (type_parameters.size() > 0) {
     result += wrap_comma_separated_to_string(type_parameters, "<", ">");
   }
   
+  return result;
+}
+
+String ast::FunctionDefinition::to_string() const {
+  String result = header.to_string() + " :: ";
+  
   result += "(";
   result += comma_separated_to_string(input_parameters);
-  result += ") -> " + return_type.to_string();
+  result += ")";
+  
+  if (return_type) {
+    result += " -> " + return_type.value().to_string();
+  }
   
   if (where_clause) {
     result += " ";
@@ -134,13 +142,7 @@ String ast::FunctionDefinition::to_string() const {
 }
 
 String ast::StructDefinition::to_string() const {
-  String result = "struct ";
-  
-  result += too::to_string(name);
-  
-  if (type_parameters.size() > 0) {
-    result += wrap_comma_separated_to_string(type_parameters, "<", ">");
-  }
+  String result = header.to_string() + " :: struct ";
   
   if (where_clause != too::NullOpt{}) {
     result += " ";
@@ -154,13 +156,7 @@ String ast::StructDefinition::to_string() const {
 }
 
 String ast::TraitDefinition::to_string() const {
-  String result = "trait ";
-  
-  result += too::to_string(name);
-  
-  if (type_parameters.size() > 0) {
-    result += wrap_comma_separated_to_string(type_parameters, "<", ">");
-  }
+  String result = header.to_string() + " :: trait ";
   
   if (where_clause != too::NullOpt{}) {
     result += " ";
