@@ -34,7 +34,7 @@ public:
     //
   }
   
-  Optional(const NullOpt& other) noexcept : Optional() {
+  constexpr Optional(const NullOpt& other) noexcept : Optional() {
     //
   }
   
@@ -42,7 +42,7 @@ public:
     //
   }
   
-  Optional(const Optional& other) : val(other.val), is_null(other.is_null) {
+  constexpr Optional(const Optional& other) : val(other.val), is_null(other.is_null) {
     //
   }
   

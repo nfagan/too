@@ -14,6 +14,18 @@ namespace {
     std::cout << result.structs.size() << " structs." << std::endl;
     std::cout << result.traits.size() << " traits." << std::endl;
     
+//    for (auto i = 0; i < result.functions.size(); i++) {
+//      const auto& func = result.functions[i];
+//      const auto& ctx = func.context;
+//
+//      if (ctx.parent_scope) {
+//        auto enclosing_function_depth = ctx.parent_scope.value();
+//
+//        std::cout << "--- " << func.header.to_string() << " ";
+//        std::cout << "Parent: " << result.functions[enclosing_function_depth].header.to_string() << std::endl;
+//      }
+//    }
+    
     for (auto i = 0; i < result.functions.size(); i++) {
       std::cout << result.functions[i].to_string() << std::endl;
     }

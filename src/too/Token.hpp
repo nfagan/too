@@ -30,7 +30,6 @@ public:
   ~TokenIterator() = default;
   
   const Token& peek() const;
-  const Token& peek_next() const;
   const Token& peek(int64_t ahead) const;
   
   const Token& next();

@@ -55,6 +55,7 @@ namespace too {
     STRUCT,
     LET,
     RIGHT_ARROW,
+    TYPE,
     SELF,
     SELF_TYPE,
     META_GROUP_BEGIN,

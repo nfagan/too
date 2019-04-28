@@ -61,6 +61,26 @@ inline String wrap_delimited_list_to_string(const Vector<T>& values,
   return lhs + delimited_list_to_string(values, delimiter) + rhs;
 }
 
+String function_type_parameter_to_string(const Vector<ast::TypeParameter>& params) {
+  if (params.empty()) {
+    return "";
+  }
+  
+  String result = "(";
+  
+  for (int64_t i = 0; i < params.size()-1; i++) {
+    result += params[i].to_string();
+    
+    if (i < params.size()-2) {
+      result += ", ";
+    }
+  }
+  
+  result += ") -> " + params[params.size()-1].to_string();
+  
+  return result;
+}
+
 String ast::Identifier::to_string() const {
   String result = too::to_string(name);
   
@@ -72,13 +92,28 @@ String ast::Identifier::to_string() const {
 }
 
 String ast::TypeParameter::to_string() const {
-  String result = too::to_string(name);
-  
-  if (parameters != NullOpt{}) {
-    result += wrap_comma_separated_to_string(parameters.value(), "<", ">");
+  if (is_function()) {
+    return function_type_parameter_to_string(parameters.value());
+    
+  } else if (is_array()) {
+    String result = "[" + too::to_string(name);
+    
+    if (parameters != NullOpt{}) {
+      result += comma_separated_to_string(parameters.value());
+    }
+    
+    result += "]";
+    return result;
+    
+  } else {
+    String result = too::to_string(name);
+    
+    if (parameters != NullOpt{}) {
+      result += wrap_comma_separated_to_string(parameters.value(), "<", ">");
+    }
+    
+    return result;
   }
-  
-  return result;
 }
 
 String ast::TraitBoundedType::to_string() const {
@@ -169,6 +204,20 @@ String ast::TraitDefinition::to_string() const {
   return result;
 }
 
+String ast::DefinitionContext::to_string() const {
+  String result = "[module=" + std::to_string(enclosing_module) + ",function=";
+  
+  if (parent_scope) {
+    result += std::to_string(parent_scope.value());
+  } else {
+    result += "<null>";
+  }
+  
+  result += "]";
+  
+  return result;
+}
+
 String ast::LetStmt::to_string() const {
   String result = "let " + identifier.to_string();
   
@@ -186,14 +235,18 @@ String ast::ExprStmt::to_string() const {
 }
 
 String ast::BlockStmt::to_string() const {
-  String result = "{\n";
+  String result = "{";
+  
+  if (!statements.empty()) {
+    result += "\n";
+  }
   
   for (auto i = 0; i < statements.size(); i++) {
     result += statements[i]->to_string();
     result += '\n';
   }
   
-  result += "}\n";
+  result += "}";
   
   return result;
 }
@@ -242,6 +295,18 @@ String ast::IdentifierLiteralExpr::to_string() const {
   return too::to_string(name);
 }
 
+bool ast::IdentifierLiteralExpr::is_valid_assignment_target() const {
+  return true;
+}
+
+String ast::AnonymousFunctionLiteralExpr::to_string() const {
+  return "<Fn>";
+}
+
+bool ast::AnonymousFunctionLiteralExpr::is_valid_assignment_target() const {
+  return false;
+}
+
 String ast::FunctionCallExpr::to_string() const {
   String result = too::to_string(name) + "(";
   result += delimited_boxed_list_to_string(input_arguments, ", ");
@@ -270,6 +335,10 @@ String ast::ContentsReferenceExpr::to_string() const {
   }
   
   return result;
+}
+
+bool ast::ContentsReferenceExpr::is_valid_assignment_target() const {
+  return true;
 }
 
 String ast::AssignmentExpr::to_string() const {

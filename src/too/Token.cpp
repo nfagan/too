@@ -56,10 +56,6 @@ const too::Token& too::TokenIterator::peek() const {
   return peek(0);
 }
 
-const too::Token& too::TokenIterator::peek_next() const {
-  return peek(1);
-}
-
 const too::Token& too::TokenIterator::peek(int64_t ahead) const {
   auto ind = next_ind + ahead;
   

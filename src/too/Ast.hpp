@@ -17,11 +17,6 @@ namespace too {
   enum class TokenType;
   
   namespace ast {
-    struct Def {
-      virtual String to_string() const = 0;
-      virtual ~Def() = default;
-    };
-    
     struct Stmt {
       virtual String to_string() const = 0;
       virtual ~Stmt() = default;
@@ -29,16 +24,40 @@ namespace too {
     
     struct Expr {
       virtual String to_string() const = 0;
+      virtual bool is_valid_assignment_target() const {
+        return false;
+      }
+      
       virtual ~Expr() = default;
     };
     
     using BoxedExpr = std::unique_ptr<Expr>;
     using BoxedStmt = std::unique_ptr<Stmt>;
-    using BoxedDef = std::unique_ptr<Def>;
     
     struct TypeParameter {
       StringView name;
       Optional<Vector<TypeParameter>> parameters;
+      uint32_t type_flags;
+      
+      TypeParameter() : type_flags(0) {
+        //
+      }
+      
+      void mark_function() {
+        type_flags |= (uint32_t(1) << 1);
+      }
+      
+      void mark_array() {
+        type_flags |= (uint32_t(1) << 2);
+      }
+      
+      bool is_function() const {
+        return (type_flags & (uint32_t(1) << 1));
+      }
+      
+      bool is_array() const {
+        return (type_flags & (uint32_t(1) << 2));
+      }
       
       String to_string() const;
     };
@@ -61,14 +80,6 @@ namespace too {
       Vector<TraitBoundedType> types;
       
       String to_string() const;
-    };
-    
-    struct DefinitionContext {
-      int scope_depth;
-      
-      DefinitionContext() : scope_depth(0) {
-        //
-      }
     };
     
     struct LetStmt : public Stmt {
@@ -152,6 +163,17 @@ namespace too {
       }
       
       String to_string() const override;
+    };
+    
+    struct DefinitionContext {
+      int64_t enclosing_module;
+      Optional<int64_t> parent_scope;
+      
+      DefinitionContext() : enclosing_module(0) {
+        //
+      }
+      
+      String to_string() const;
     };
     
     struct DefinitionHeader {
@@ -298,6 +320,13 @@ namespace too {
       ~IdentifierLiteralExpr() = default;
       
       String to_string() const override;
+      bool is_valid_assignment_target() const override;
+    };
+    
+    struct AnonymousFunctionLiteralExpr : public Expr {
+      
+      String to_string() const override;
+      bool is_valid_assignment_target() const override;
     };
     
     struct ElseExpr : public Expr {
@@ -349,6 +378,7 @@ namespace too {
       ~ContentsReferenceExpr() = default;
       
       String to_string() const override;
+      bool is_valid_assignment_target() const override;
     };
     
     struct AssignmentExpr : public Expr {
