@@ -150,3 +150,25 @@ inline bool operator==(const too::Optional<T>& lhs, const too::Optional<T>& rhs)
   
   return lhs.value() == rhs.value();
 }
+
+namespace too {
+  template <typename T>
+  inline bool optional_less(const Optional<T>& lhs, const Optional<T>& rhs) {
+    bool lhs_has_val = lhs.has_value();
+    bool rhs_has_val = rhs.has_value();
+    
+    //  Empty is less than full.
+    if (!lhs_has_val && rhs_has_val) {
+      return true;
+    } else if (rhs_has_val && !lhs_has_val) {
+      return false;
+    }
+    
+    //  Equal -- both empty.
+    if (!lhs_has_val) {
+      return false;
+    }
+    
+    return lhs.value() < rhs.value();
+  }
+}

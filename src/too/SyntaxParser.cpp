@@ -12,15 +12,117 @@
 #include <iostream>
 #include <cstring>
 #include <cassert>
+#include <set>
 
 #define BEGIN_NAMESPACE namespace too {
 #define END_NAMESPACE }
 
 BEGIN_NAMESPACE
 
+bool DefinitionRegistry::register_definition(const StringView& name, const ast::DefinitionContext& context) {
+  ast::NamedDefinitionContext named_context(name, context);
+  
+  if (contents.count(named_context) > 0) {
+    return false;
+  }
+  
+  contents.emplace(named_context);
+  return true;
+}
+
+struct EnclosingScope {
+  Optional<int64_t> depth;
+  
+  void enter() {
+    if (depth.has_value()) {
+      depth = depth.value() + 1;
+    } else {
+      depth = 0;
+    }
+  }
+  
+  bool entered() const {
+    return depth.has_value();
+  }
+  
+  void exit() {
+    assert(entered() && "Scope was not yet entered.");
+    
+    auto new_depth = depth.value() - 1;
+    if (new_depth < 0) {
+      depth = NullOpt{};
+    } else {
+      depth = new_depth;
+    }
+  }
+};
+
+struct UniqueEnclosingScope {
+  UniqueEnclosingScope() : current_id(0) {
+    //
+  }
+  
+  Optional<int64_t> id() const {
+    if (ids.empty()) {
+      return NullOpt{};
+    } else {
+      return Optional<int64_t>(ids.back());
+    }
+  }
+  
+  void enter() {
+    ids.push_back(current_id++);
+  }
+  
+  bool entered() const {
+    return !ids.empty();
+  }
+  
+  void exit() {
+    assert(entered() && "Scope was not yet entered.");
+    ids.pop_back();
+  }
+private:
+  Vector<int64_t> ids;
+  int64_t current_id;
+};
+
+struct UniqueEnclosingScopeHelper {
+  UniqueEnclosingScope& scope;
+  
+  UniqueEnclosingScopeHelper(UniqueEnclosingScope& scp) : scope(scp) {
+    scope.enter();
+  }
+  
+  ~UniqueEnclosingScopeHelper() {
+    scope.exit();
+  }
+};
+
+struct EnclosingScopeHelper {
+  EnclosingScope& scope;
+  
+  EnclosingScopeHelper(EnclosingScope& scp) : scope(scp) {
+    scope.enter();
+  }
+  
+  ~EnclosingScopeHelper() {
+    scope.exit();
+  }
+};
+
 struct Context {
-  Optional<int64_t> enclosing_module;
+  UniqueEnclosingScope enclosing_scope;
+  UniqueEnclosingScope enclosing_module;
+  UniqueEnclosingScope enclosing_trait;
+  EnclosingScope enclosing_function;
   int64_t scope_depth;
+  
+  DefinitionRegistry module_registry;
+  DefinitionRegistry trait_registry;
+  DefinitionRegistry function_registry;
+  DefinitionRegistry struct_registry;
+  DefinitionRegistry identifier_registry;
   
   Context() : scope_depth(-1) {
     //
@@ -54,6 +156,7 @@ Optional<ast::FunctionDefinition> anonymous_function_definition(TokenIterator& i
 
 Optional<ast::BoxedStmt> block_statement(TokenIterator& iterator, SyntaxParseResult& result, Context& context);
 
+ast::DefinitionContext definition_context(Context& context);
 Optional<ast::TypeParameter> type_parameter(TokenIterator& iterator, SyntaxParseResult& result);
 Optional<Vector<ast::TypeParameter>> type_parameters(TokenIterator& iterator, SyntaxParseResult& result);
 
@@ -71,10 +174,26 @@ inline bool is_unary_token_type(const TokenType token_type) {
   return token_type == TokenType::BANG || token_type == TokenType::MINUS;
 }
 
+inline bool matches_token_type_pair(const TokenIterator& iterator,
+                                    const TokenType first,
+                                    const TokenType second,
+                                    const int64_t offset = 0) {
+  return (iterator.peek(offset).type == first &&
+          iterator.peek(offset + 1).type == second);
+}
+
+inline bool is_identifier_colon_sequence(const TokenIterator& iterator, int64_t offset = 0) {
+  return matches_token_type_pair(iterator, TokenType::IDENTIFIER, TokenType::COLON, offset);
+}
+
 inline bool is_anonymous_function_definition_start(const TokenIterator& iterator) {
-  return (iterator.peek().type == TokenType::LEFT_PARENS &&
-          iterator.peek(1).type == TokenType::IDENTIFIER &&
-          iterator.peek(2).type == TokenType::COLON);
+  if (iterator.peek().type != TokenType::LEFT_PARENS) {
+    return false;
+  } else if (is_identifier_colon_sequence(iterator, 1)) {
+    return true;
+  } else {
+    return matches_token_type_pair(iterator, TokenType::RIGHT_PARENS, TokenType::RIGHT_ARROW, 1);
+  }
 }
 
 inline bool is_unary_operable(const TokenType preceding_token) {
@@ -109,6 +228,18 @@ inline bool is_binary_token_type(const TokenType token_type) {
   }
 }
 
+inline bool is_useable_token_type(const TokenType token_type) {
+  switch (token_type) {
+    case TokenType::MOD:
+    case TokenType::FN:
+    case TokenType::TRAIT:
+    case TokenType::STRUCT:
+      return true;
+    default:
+      return false;
+  }
+}
+
 inline int token_precedence(const TokenType token_type) {
   switch (token_type) {
     case TokenType::EQUAL:
@@ -136,6 +267,49 @@ inline bool is_literal_token_type(const TokenType token_type) {
   return (token_type == TokenType::INT_LITERAL ||
           token_type == TokenType::FLOAT_LITERAL ||
           token_type == TokenType::STRING_LITERAL);
+}
+
+void find_parent_functions(Vector<ast::FunctionDefinition>& functions) {
+  //  @FIXME: This runs in quadratic time.
+  int64_t start_search = -1;
+  int64_t prev_depth = -1;
+  const auto n_funcs = functions.size();
+  
+  for (auto i = 0; i < n_funcs; i++) {
+    auto& func = functions[i];
+    
+    if (!func.context.enclosing_function) {
+      continue;
+    }
+    
+    int64_t j;
+    auto depth = func.context.enclosing_function.value();
+    const auto& enclosing_trait = func.context.enclosing_trait;
+    
+    if (start_search <= i || depth != prev_depth) {
+      j = i + 1;
+    } else {
+      j = start_search;
+    }
+    
+    prev_depth = depth;
+    
+    while (j < n_funcs) {
+      const auto& maybe_parent_enclosing_func = functions[j].context.enclosing_function;
+      const auto& maybe_parent_enclosing_trait = functions[j].context.enclosing_trait;
+      
+      const bool matches_depth = !maybe_parent_enclosing_func || maybe_parent_enclosing_func.value() == depth-1;
+      const bool matches_trait = enclosing_trait == maybe_parent_enclosing_trait;
+      
+      if (matches_depth && matches_trait) {
+        func.context.enclosing_function = j;
+        start_search = j;
+        break;
+      }
+      
+      j++;
+    }
+  }
 }
 
 template <typename T>
@@ -386,6 +560,31 @@ Optional<Vector<ast::Identifier>> struct_members(TokenIterator& iterator, Syntax
   return explicitly_typed_identifier_sequence(iterator, result, TokenType::RIGHT_BRACE);
 }
 
+Optional<Vector<ast::Identifier>> untyped_identifier_sequence(TokenIterator& iterator,
+                                                              SyntaxParseResult& result,
+                                                              const TokenType stop_token) {
+  Vector<ast::Identifier> identifiers;
+  
+  while (iterator.has_next()) {
+    const auto& next = iterator.peek();
+    
+    if (next.type == TokenType::IDENTIFIER) {
+      iterator.advance(1);
+      ast::Identifier identifier;
+      identifier.name = next.lexeme;
+      identifiers.push_back(identifier);
+    } else if (next.type != stop_token) {
+      return NullOpt{};
+    }
+    
+    if (!consume_token(iterator, result, TokenType::COMMA)) {
+      break;
+    }
+  }
+  
+  return Optional<decltype(identifiers)>(std::move(identifiers));
+}
+
 Optional<ast::TraitBoundedType> trait_bounded_type(TokenIterator& iterator, SyntaxParseResult& result) {
   if (iterator.peek().type != TokenType::IDENTIFIER || iterator.peek(1).type != TokenType::COLON) {
     return NullOpt{};
@@ -560,10 +759,48 @@ inline bool check_assign_function_body(TokenIterator& iterator,
   return true;
 }
 
+inline bool register_module(Context& context, const StringView& name) {
+  ast::DefinitionContext def_ctx = definition_context(context);
+  return context.module_registry.register_definition(name, def_ctx);
+}
+
+inline bool register_trait(Context& context, const StringView& name) {
+  ast::DefinitionContext def_ctx = definition_context(context);
+  return context.trait_registry.register_definition(name, def_ctx);
+}
+
+inline bool register_function(Context& context, const StringView& name) {
+  ast::DefinitionContext def_ctx = definition_context(context);
+  return context.function_registry.register_definition(name, def_ctx);
+}
+
+inline bool register_struct(Context& context, const StringView& name) {
+  ast::DefinitionContext def_ctx = definition_context(context);
+  return context.struct_registry.register_definition(name, def_ctx);
+}
+
+inline bool register_identifier(Context& context, const StringView& name) {
+  ast::DefinitionContext def_ctx = definition_context(context);
+  return context.identifier_registry.register_definition(name, def_ctx);
+}
+
+ast::DefinitionContext definition_context(Context& context) {
+  ast::DefinitionContext def_context;
+  
+  def_context.scope_depth = context.scope_depth;
+  def_context.enclosing_function = context.enclosing_function.depth;
+  def_context.enclosing_module = context.enclosing_module.id();
+  def_context.enclosing_trait = context.enclosing_trait.id();
+  def_context.enclosing_scope = context.enclosing_scope.id();
+  
+  return def_context;
+}
+
 Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
                                                       SyntaxParseResult& result,
                                                       Context& context,
-                                                      ast::DefinitionHeader& header) {
+                                                      ast::DefinitionHeader& header,
+                                                      const bool require_implementation) {
   too::ast::FunctionDefinition function_def;
   function_def.header = std::move(header);
   
@@ -571,21 +808,25 @@ Optional<ast::FunctionDefinition> function_definition(TokenIterator& iterator,
     return NullOpt{};
   }
 
-  //  (Optional) Where clause
+  //  (Optional) Where clause.
   if (!check_assign_where(iterator, result, function_def)) {
     return NullOpt{};
   }
   
-  function_def.context.enclosing_module = context.enclosing_module;
-
-  if (context.scope_depth > 0) {
-    function_def.context.parent_scope = context.scope_depth;
+  //  Ensure non-duplicate.
+  if (!register_function(context, header.name)) {
+    return NullOpt{};
   }
   
-  if (!consume_token(iterator, result, TokenType::SEMICOLON)) {
-    if (!check_assign_function_body(iterator, result, context, function_def)) {
+  function_def.context = definition_context(context);
+  EnclosingScopeHelper scope_helper(context.enclosing_function);
+  
+  if (consume_token(iterator, result, TokenType::SEMICOLON)) {
+    if (require_implementation) {
       return NullOpt{};
     }
+  } else if (!check_assign_function_body(iterator, result, context, function_def)) {
+    return NullOpt{};
   }
   
   return Optional<ast::FunctionDefinition>(std::move(function_def));
@@ -600,11 +841,8 @@ Optional<ast::FunctionDefinition> anonymous_function_definition(TokenIterator& i
     return NullOpt{};
   }
   
-  function_def.context.enclosing_module = context.enclosing_module;
-  
-  if (context.scope_depth > 0) {
-    function_def.context.parent_scope = context.scope_depth;
-  }
+  function_def.context = definition_context(context);
+  EnclosingScopeHelper scope_helper(context.enclosing_function);
   
   if (!check_assign_function_body(iterator, result, context, function_def)) {
     return NullOpt{};
@@ -620,8 +858,18 @@ Optional<ast::StructDefinition> struct_definition(TokenIterator& iterator,
   
   iterator.advance(1);  //  consume struct.
   
+  if (context.enclosing_function.entered() || context.enclosing_trait.entered()) {
+    //  Disallow struct definitions, except in module scope.
+    return NullOpt{};
+  }
+  
+  if (!register_struct(context, header.name)) {
+    return NullOpt{};
+  }
+  
   too::ast::StructDefinition struct_def;
   struct_def.header = std::move(header);
+  struct_def.context = definition_context(context);
   
   //  Has where clause ?
   if (!check_assign_where(iterator, result, struct_def)) {
@@ -651,8 +899,20 @@ Optional<ast::TraitDefinition> trait_definition(TokenIterator& iterator,
                                                 ast::DefinitionHeader& header) {
   iterator.advance(1);  //  consume trait.
   
+  if (context.enclosing_function.entered()) {
+    //  Disallow trait definitions, except in module scope.
+    return NullOpt{};
+  }
+  
   too::ast::TraitDefinition trait_def;
   trait_def.header = std::move(header);
+  trait_def.context = definition_context(context);
+  
+  if (!register_trait(context, trait_def.header.name)) {
+    //  Duplicate trait.
+    return NullOpt{};
+  }
+  
   //  Has where clause ?
   if (!check_assign_where(iterator, result, trait_def)) {
     return NullOpt{};
@@ -662,6 +922,8 @@ Optional<ast::TraitDefinition> trait_definition(TokenIterator& iterator,
     //  @FIXME: Expected left brace
     return NullOpt{};
   }
+  
+  UniqueEnclosingScopeHelper scope_helper(context.enclosing_trait);
   
   while (iterator.has_next() && iterator.peek().type != TokenType::RIGHT_BRACE) {
     const auto next = require_token(iterator, result, TokenType::IDENTIFIER);
@@ -675,12 +937,14 @@ Optional<ast::TraitDefinition> trait_definition(TokenIterator& iterator,
     }
     
     auto&& header = header_result.rvalue();
-    auto func_result = function_definition(iterator, result, context, header);
+    const bool require_impl = false;
+    auto func_result = function_definition(iterator, result, context, header, require_impl);
     if (!func_result) {
       return NullOpt{};
     }
     
-    trait_def.functions.push_back(func_result.rvalue());
+    result.functions.push_back(func_result.rvalue());
+    trait_def.functions.push_back(result.functions.size()-1);
   }
   
   if (!consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
@@ -688,6 +952,69 @@ Optional<ast::TraitDefinition> trait_definition(TokenIterator& iterator,
   }
   
   return Optional<ast::TraitDefinition>(std::move(trait_def));
+}
+
+Optional<ast::UsingDeclaration> using_declaration(TokenIterator& iterator,
+                                                  SyntaxParseResult& result,
+                                                  Context& context) {
+  
+  const auto& using_type = iterator.next();
+  if (!is_useable_token_type(using_type.type)) {
+    return NullOpt{};
+  }
+  
+  Vector<ast::Identifier> used_targets;
+  bool require_in_keyword = false;
+  
+  if (consume_token(iterator, result, TokenType::LEFT_BRACE)) {
+    auto identifier_sequence_res = untyped_identifier_sequence(iterator, result, TokenType::RIGHT_BRACE);
+    if (!identifier_sequence_res || !consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
+      return NullOpt{};
+    }
+    
+    used_targets = identifier_sequence_res.rvalue();
+    require_in_keyword = true;
+  } else {
+    auto token_res = require_token(iterator, result, TokenType::IDENTIFIER);
+    if (!token_res) {
+      return NullOpt{};
+    }
+    
+    require_in_keyword = using_type.type != TokenType::MOD;
+    ast::Identifier id;
+    id.name = token_res.value().lexeme;
+    used_targets.push_back(std::move(id));
+  }
+  
+  ast::UsingDeclaration using_decl;
+  
+  if (require_in_keyword || iterator.peek().type == TokenType::IN) {
+    if (!consume_token(iterator, result, TokenType::IN)) {
+      return NullOpt{};
+    }
+    
+    auto in_module_res = require_token(iterator, result, TokenType::IDENTIFIER);
+    if (!in_module_res) {
+      return NullOpt{};
+    }
+    
+    using_decl.targets = std::move(used_targets);
+    using_decl.type = using_type.type;
+    using_decl.in_module = in_module_res.value().lexeme;
+  } else {
+    assert(used_targets.size() == 1 && "Expected 1 used target.");
+    
+    using_decl.in_module = used_targets[0].name;
+    using_decl.type = TokenType::MOD;
+  }
+  
+  using_decl.context = definition_context(context);
+  
+  if (!consume_token(iterator, result, TokenType::SEMICOLON)) {
+    return NullOpt{};
+  }
+  
+  return Optional<ast::UsingDeclaration>(std::move(using_decl));
 }
 
 Optional<Vector<ast::BoxedExpr>> function_call(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
@@ -1078,6 +1405,11 @@ Optional<ast::BoxedStmt> let_statement(TokenIterator& iterator, SyntaxParseResul
     return NullOpt{};
   }
   
+  if (!register_identifier(context, identifier.value().name)) {
+    //  Duplicate identifier.
+    return NullOpt{};
+  }
+  
   if (consume_token(iterator, result, TokenType::EQUAL)) {
     auto initializer = expression(iterator, result, context);
     if (!initializer) {
@@ -1179,7 +1511,8 @@ inline bool check_assign_function_definition(TokenIterator& iterator,
                                              SyntaxParseResult& result,
                                              Context& context,
                                              ast::DefinitionHeader& header) {
-  auto function_def_result = function_definition(iterator, result, context, header);
+  const bool require_impl = true;
+  auto function_def_result = function_definition(iterator, result, context, header, require_impl);
   if (!function_def_result) {
     return false;
   }
@@ -1213,11 +1546,44 @@ inline bool check_assign_struct_definition(TokenIterator& iterator,
   }
   
   result.structs.push_back(struct_def_result.rvalue());
-  
   return true;
 }
 
-inline bool dispatch_from_identifier(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
+inline bool check_assign_module_definition(TokenIterator& iterator,
+                                           SyntaxParseResult& result,
+                                           Context& context,
+                                           ast::DefinitionHeader& header,
+                                           ast::BlockStmt& assign_to) {
+  iterator.advance(1);  //  consume mod.
+  
+  if (!consume_token(iterator, result, TokenType::LEFT_BRACE)) {
+    return false;
+  }
+  
+  if (context.enclosing_function.entered() || context.enclosing_trait.entered()) {
+    //  Cannot define a module within a function or trait.
+    return false;
+  }
+  
+  if (!register_module(context, header.name)) {
+    return false;
+  }
+  
+  UniqueEnclosingScopeHelper scope_helper(context.enclosing_module);
+  
+  auto block_result = block_statement(iterator, result, context);
+  if (!block_result) {
+    return false;
+  }
+  
+  assign_to.statements.push_back(block_result.rvalue());
+  return true;
+}
+
+inline bool dispatch_from_identifier(TokenIterator& iterator,
+                                     SyntaxParseResult& result,
+                                     Context& context,
+                                     ast::BlockStmt& assign_to) {
   const auto& identifier_token = iterator.next();
   
   auto header_result = definition_header(iterator, result, identifier_token);
@@ -1229,25 +1595,20 @@ inline bool dispatch_from_identifier(TokenIterator& iterator, SyntaxParseResult&
   auto&& header = header_result.rvalue();
   
   if (next.type == TokenType::LEFT_PARENS) {
-    if (!check_assign_function_definition(iterator, result, context, header)) {
-      return false;
-    }
+    return check_assign_function_definition(iterator, result, context, header);
     
   } else if (next.type == TokenType::TRAIT) {
-    if (!check_assign_trait_definition(iterator, result, context, header)) {
-      return false;
-    }
+    return check_assign_trait_definition(iterator, result, context, header);
     
   } else if (next.type == TokenType::STRUCT) {
-    if (!check_assign_struct_definition(iterator, result, context, header)) {
-      return false;
-    }
+    return check_assign_struct_definition(iterator, result, context, header);
+    
+  } else if (next.type == TokenType::MOD) {
+    return check_assign_module_definition(iterator, result, context, header, assign_to);
     
   } else {
     return false;
   }
-  
-  return true;
 }
 
 inline bool check_assign_variable_declaration(TokenIterator& iterator,
@@ -1261,6 +1622,11 @@ inline bool check_assign_variable_declaration(TokenIterator& iterator,
   
   auto initializer_result = expression(iterator, result, context);
   if (!initializer_result || !consume_token(iterator, result, TokenType::SEMICOLON)) {
+    return false;
+  }
+  
+  if (!register_identifier(context, identifier_token.lexeme)) {
+    //  Duplicate identifier.
     return false;
   }
   
@@ -1282,7 +1648,7 @@ inline bool check_assign_identifier_statement_or_expression(TokenIterator& itera
   const auto& next = iterator.peek(1);
   
   if (next.type == TokenType::LESS || next.type == TokenType::DOUBLE_COLON) {
-    return dispatch_from_identifier(iterator, result, context);
+    return dispatch_from_identifier(iterator, result, context, block_stmt);
     
   } else if (next.type == TokenType::COLON_EQUAL) {
     return check_assign_variable_declaration(iterator, result, context, token, next, block_stmt);
@@ -1295,8 +1661,46 @@ inline bool check_assign_identifier_statement_or_expression(TokenIterator& itera
   return true;
 }
 
+inline bool check_assign_use_statement(TokenIterator& iterator,
+                                       SyntaxParseResult& result,
+                                       Context& context) {
+  iterator.advance(1);  //  consume use;
+  
+  auto using_res = using_declaration(iterator, result, context);
+  if (!using_res) {
+    return false;
+  }
+  
+  const auto& using_decl = using_res.value();
+  if (using_decl.targets) {
+    const auto& kind = using_decl.type;
+    const auto& targets = using_decl.targets.value();
+    
+    for (auto i = 0; i < targets.size(); i++) {
+      const auto& name = targets[i].name;
+      
+      if (kind == TokenType::MOD && !register_module(context, name)) {
+        return false;
+      } else if (kind == TokenType::TRAIT && !register_trait(context, name)) {
+        return false;
+      } else if (kind == TokenType::STRUCT && !register_struct(context, name)) {
+        return false;
+      } else if (kind == TokenType::FN && !register_function(context, name)) {
+        return false;
+      }
+    }
+  } else if (!register_module(context, using_decl.in_module)) {
+    return false;
+  }
+  
+  result.external_symbols.push_back(using_res.rvalue());
+  
+  return true;
+}
+
 Optional<ast::BoxedStmt> block_statement(TokenIterator& iterator, SyntaxParseResult& result, Context& context) {
   ScopeHelper scope_helper(context);
+  UniqueEnclosingScopeHelper enclosing_scope_helper(context.enclosing_scope);
   ast::BlockStmt block_stmt;
   
   while (iterator.has_next()) {
@@ -1309,6 +1713,11 @@ Optional<ast::BoxedStmt> block_statement(TokenIterator& iterator, SyntaxParseRes
       
     } else if (token.type == TokenType::LET) {
       if (!check_assign_let_statement(iterator, result, context, block_stmt)) {
+        return NullOpt{};
+      }
+      
+    } else if (token.type == TokenType::USE) {
+      if (!check_assign_use_statement(iterator, result, context)) {
         return NullOpt{};
       }
       
@@ -1336,69 +1745,43 @@ Optional<ast::BoxedStmt> block_statement(TokenIterator& iterator, SyntaxParseRes
     }
   }
   
-  if (!consume_token(iterator, result, TokenType::RIGHT_BRACE) &&
-      !consume_token(iterator, result, TokenType::END)) {
-    return NullOpt{};
+  if (iterator.peek().type != TokenType::END) {
+    if (!consume_token(iterator, result, TokenType::RIGHT_BRACE)) {
+      return NullOpt{};
+    }
   }
   
   return make_optional_boxed_stmt<ast::BlockStmt>(std::move(block_stmt));
 }
 
-void find_parent_functions(Vector<ast::FunctionDefinition>& functions) {
-  int64_t start_search = -1;
-  int64_t prev_depth = -1;
-  const auto n_funcs = functions.size();
-  
-  for (auto i = 0; i < n_funcs; i++) {
-    auto& func = functions[i];
-    
-    if (!func.context.parent_scope) {
-      continue;
-    }
-    
-    int64_t j;
-    auto depth = func.context.parent_scope.value();
-    
-    if (start_search <= i || depth != prev_depth) {
-      j = i + 1;
-    } else {
-      j = start_search;
-    }
-    
-    prev_depth = depth;
-    
-    while (j < n_funcs) {
-      const auto& maybe_parent_enclosing_func = functions[j].context.parent_scope;
-      
-      if (!maybe_parent_enclosing_func || maybe_parent_enclosing_func.value() == depth-1) {
-        func.context.parent_scope = j;
-        start_search = j;
-        break;
-      }
-      
-      j++;
-    }
-  }
-}
-
 SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {
   SyntaxParseResult result;
+  result.had_error = false;
   
   too::TokenIterator iterator(tokens.data(), tokens.size());
   Context context;
   ast::BlockStmt root;
   
   while (iterator.has_next()) {
-    auto block_res = block_statement(iterator, result, context);
+    if (consume_token(iterator, result, TokenType::END)) {
+      break;
+    }
     
+    auto block_res = block_statement(iterator, result, context);
     if (block_res) {
       root.statements.push_back(block_res.rvalue());
+    } else {
+      result.had_error = true;
     }
   }
   
   find_parent_functions(result.functions);
   
-  std::cout << root.to_string() << std::endl;
+  result.function_registry = std::move(context.function_registry);
+  result.struct_registry = std::move(context.struct_registry);
+  result.trait_registry = std::move(context.trait_registry);
+  result.identifier_registry = std::move(context.identifier_registry);
+  result.module_registry = std::move(context.module_registry);
   
   return result;
 }

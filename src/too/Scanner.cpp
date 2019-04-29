@@ -73,7 +73,10 @@ namespace {
     {"Self", TokenType::SELF_TYPE},
     {"true", TokenType::TOO_TRUE},
     {"false", TokenType::TOO_FALSE},
-    {"type", TokenType::TYPE}
+    {"type", TokenType::TYPE},
+    {"use", TokenType::USE},
+    {"mod", TokenType::MOD},
+    {"lib", TokenType::LIB}
   };
 }
 

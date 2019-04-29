@@ -61,6 +61,15 @@ inline String wrap_delimited_list_to_string(const Vector<T>& values,
   return lhs + delimited_list_to_string(values, delimiter) + rhs;
 }
 
+template <typename T>
+inline String optional_number_to_string(const Optional<T>& v) {
+  if (!v) {
+    return "<null>";
+  } else {
+    return std::to_string(v.value());
+  }
+}
+
 String function_type_parameter_to_string(const Vector<ast::TypeParameter>& params) {
   if (params.empty()) {
     return "";
@@ -199,22 +208,36 @@ String ast::TraitDefinition::to_string() const {
     result += " ";
   }
   
-  result += wrap_delimited_list_to_string(functions, "{\n  ", "\n}", ",\n  ");
+  result += "{\n";
+  
+  for (auto i = 0; i < functions.size(); i++) {
+    result += "<fn>\n";
+  }
+  
+  result += "}";
   
   return result;
 }
 
 String ast::DefinitionContext::to_string() const {
-  String result = "[module=" + std::to_string(enclosing_module) + ",function=";
-  
-  if (parent_scope) {
-    result += std::to_string(parent_scope.value());
-  } else {
-    result += "<null>";
-  }
-  
+  String result = "[module=" + optional_number_to_string(enclosing_module);
+  result += ",function=" + optional_number_to_string(enclosing_function);
+  result += ",trait=" + optional_number_to_string(enclosing_trait);
+  result += ",scope=" + std::to_string(scope_depth);
   result += "]";
   
+  return result;
+}
+
+String ast::UsingDeclaration::to_string() const {
+  String result = String("use ") + too::to_string_symbol(type) + " ";
+  
+  if (targets) {
+    result += wrap_comma_separated_to_string(targets.value(), "{", "}");
+    result += " in ";
+  }
+  
+  result += too::to_string(in_module);
   return result;
 }
 

@@ -35,9 +35,9 @@ namespace too {
     using BoxedStmt = std::unique_ptr<Stmt>;
     
     struct TypeParameter {
+    public:
       StringView name;
       Optional<Vector<TypeParameter>> parameters;
-      uint32_t type_flags;
       
       TypeParameter() : type_flags(0) {
         //
@@ -60,6 +60,9 @@ namespace too {
       }
       
       String to_string() const;
+      
+    private:
+      uint32_t type_flags;
     };
     
     struct Identifier {
@@ -166,19 +169,68 @@ namespace too {
     };
     
     struct DefinitionContext {
-      int64_t enclosing_module;
-      Optional<int64_t> parent_scope;
+      Optional<int64_t> enclosing_module;
+      Optional<int64_t> enclosing_function;
+      Optional<int64_t> enclosing_trait;
+      Optional<int64_t> enclosing_scope;
+      int64_t scope_depth;
       
-      DefinitionContext() : enclosing_module(0) {
+      DefinitionContext() : scope_depth(0) {
         //
+      }
+      
+      bool equals(const DefinitionContext& rhs) const {
+        return (enclosing_module == rhs.enclosing_module &&
+                enclosing_function == rhs.enclosing_function &&
+                enclosing_trait == rhs.enclosing_trait &&
+                enclosing_scope == rhs.enclosing_scope &&
+                scope_depth == rhs.scope_depth);
+      }
+      
+      bool less(const DefinitionContext& rhs) const {
+        return (optional_less(enclosing_module, rhs.enclosing_module) ||
+                optional_less(enclosing_function, rhs.enclosing_function) ||
+                optional_less(enclosing_trait, rhs.enclosing_trait) ||
+                optional_less(enclosing_scope, rhs.enclosing_scope) ||
+                scope_depth < rhs.scope_depth);
       }
       
       String to_string() const;
     };
     
+    struct NamedDefinitionContext {
+      StringView name;
+      DefinitionContext context;
+      
+      NamedDefinitionContext() = default;
+      ~NamedDefinitionContext() = default;
+      
+      NamedDefinitionContext(const StringView& name, const DefinitionContext& ctx) :
+      name(name), context(ctx) {
+        //
+      }
+      
+      bool equals(const NamedDefinitionContext& rhs) const {
+        return name == rhs.name && context.equals(rhs.context);
+      }
+      
+      bool less(const NamedDefinitionContext& rhs) const {
+        return name < rhs.name || context.less(rhs.context);
+      }
+    };
+    
     struct DefinitionHeader {
       StringView name;
       Vector<TypeParameter> type_parameters;
+      
+      String to_string() const;
+    };
+    
+    struct UsingDeclaration {
+      Optional<Vector<Identifier>> targets;
+      TokenType type;
+      DefinitionContext context;
+      StringView in_module;
       
       String to_string() const;
     };
@@ -208,7 +260,7 @@ namespace too {
     struct TraitDefinition {
       DefinitionHeader header;
       Optional<WhereClause> where_clause;
-      Vector<FunctionDefinition> functions;
+      Vector<int64_t> functions;
       
       DefinitionContext context;
       
@@ -231,7 +283,8 @@ namespace too {
         //
       }
       
-      UnaryExpr(TokenType op, BoxedExpr&& expr) : operator_token(op), expression(std::move(expr)) {
+      UnaryExpr(TokenType op, BoxedExpr&& expr) :
+      operator_token(op), expression(std::move(expr)) {
         //
       }
       
@@ -388,4 +441,46 @@ namespace too {
       String to_string() const override;
     };
   }
+}
+
+inline bool operator==(const too::ast::DefinitionContext& lhs, const too::ast::DefinitionContext& rhs) {
+  return lhs.equals(rhs);
+}
+
+inline bool operator!=(const too::ast::DefinitionContext& lhs, const too::ast::DefinitionContext& rhs) {
+  return !lhs.equals(rhs);
+}
+
+inline bool operator<(const too::ast::DefinitionContext& lhs, const too::ast::DefinitionContext& rhs) {
+  return lhs.less(rhs);
+}
+
+inline bool operator==(const too::ast::NamedDefinitionContext& lhs, const too::ast::NamedDefinitionContext& rhs) {
+  return lhs.equals(rhs);
+}
+
+inline bool operator!=(const too::ast::NamedDefinitionContext& lhs, const too::ast::NamedDefinitionContext& rhs) {
+  return !lhs.equals(rhs);
+}
+
+inline bool operator<(const too::ast::NamedDefinitionContext& lhs, const too::ast::NamedDefinitionContext& rhs) {
+  return lhs.less(rhs);
+}
+
+//
+//
+//  Comparators
+
+namespace std {
+  template<> struct less<too::ast::NamedDefinitionContext> {
+    bool operator()(const too::ast::NamedDefinitionContext& lhs, const too::ast::NamedDefinitionContext& rhs) const {
+      return ::operator<(lhs, rhs);
+    }
+  };
+  
+  template<> struct less<too::ast::DefinitionContext> {
+    bool operator()(const too::ast::DefinitionContext& a, const too::ast::DefinitionContext& b) const {
+      return ::operator<(a, b);
+    }
+  };
 }

@@ -1,6 +1,7 @@
 #include "too/Scanner.hpp"
 #include "too/Display.hpp"
 #include "too/SyntaxParser.hpp"
+#include "too/ExternalResolution.hpp"
 #include "too/TokenNfa.hpp"
 #include "too/Optional.hpp"
 #include <iterator>
@@ -9,32 +10,34 @@
 #include <chrono>
 
 namespace {
+  void print_functions(const too::Vector<too::ast::FunctionDefinition>& functions) {
+    for (auto i = 0; i < functions.size(); i++) {
+      std::cout << functions[i].context.to_string();
+      
+      if (functions[i].context.enclosing_function) {
+        const auto& parent_ind = functions[i].context.enclosing_function.value();
+        std::cout << " - Parent:" << functions[parent_ind].header.to_string();
+      }
+      
+      std::cout << std::endl << functions[i].to_string() << std::endl;
+    }
+  }
+  
   void print_parse_result(const too::SyntaxParseResult& result) {
     std::cout << result.functions.size() << " functions." << std::endl;
     std::cout << result.structs.size() << " structs." << std::endl;
     std::cout << result.traits.size() << " traits." << std::endl;
-    
-//    for (auto i = 0; i < result.functions.size(); i++) {
-//      const auto& func = result.functions[i];
-//      const auto& ctx = func.context;
-//
-//      if (ctx.parent_scope) {
-//        auto enclosing_function_depth = ctx.parent_scope.value();
-//
-//        std::cout << "--- " << func.header.to_string() << " ";
-//        std::cout << "Parent: " << result.functions[enclosing_function_depth].header.to_string() << std::endl;
-//      }
-//    }
-    
-    for (auto i = 0; i < result.functions.size(); i++) {
-      std::cout << result.functions[i].to_string() << std::endl;
-    }
+    std::cout << result.external_symbols.size() << " external symbols." << std::endl;
+
+    print_functions(result.functions);
     
     for (auto i = 0; i < result.traits.size(); i++) {
+      std::cout << result.traits[i].context.to_string() << std::endl;
       std::cout << result.traits[i].to_string() << std::endl;
     }
     
     for (auto i = 0; i < result.structs.size(); i++) {
+      std::cout << result.structs[i].context.to_string() << std::endl;
       std::cout << result.structs[i].to_string() << std::endl;
     }
   }
@@ -82,17 +85,24 @@ int main(int argc, char* argv[]) {
   
   std::cout << "Scanned " << code.size() << " bytes in " << (elapsed.count() * 1e3) << "ms" << std::endl;
   
+  too::SyntaxParseResult parse_result;
+  
   if (!scan_result.had_error) {
     t0 = std::chrono::high_resolution_clock::now();
-    auto parse_result = too::parse_syntax(scan_result.tokens);
+    parse_result = too::parse_syntax(scan_result.tokens);
     t1 = std::chrono::high_resolution_clock::now();
     
     elapsed = t1 - t0;
     
     std::cout << "Parsed " << scan_result.tokens.size() << " tokens in " << (elapsed.count() * 1e3) << "ms" << std::endl;
     
-    print_parse_result(parse_result);
+//    print_parse_result(parse_result);
   }
+  
+  std::cout << "Had error ? " << parse_result.had_error << std::endl;
+  
+  const char* const parent_path = "/Users/Nick/repositories/lang/too1/data/scripts/";
+  too::resolve_external_modules(parse_result, parent_path, "module");
   
   return 0;
 }
