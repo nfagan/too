@@ -70,7 +70,7 @@ bool parse_modules(const Vector<ast::UsingDeclaration>& external_modules,
     
     auto nested_externals = parse_result.value().external_symbols;
     into.emplace(module_name, parse_result.rvalue());
-    visited_files.emplace(read_file);
+    visited_files.emplace(std::move(read_file));
     
     if (!parse_modules(nested_externals, into, visited_files, parent_path, parent_full_path)) {
       return false;
