@@ -1762,11 +1762,7 @@ SyntaxParseResult parse_syntax(const too::Vector<too::Token>& tokens) {
   Context context;
   ast::BlockStmt root;
   
-  while (iterator.has_next()) {
-    if (consume_token(iterator, result, TokenType::END)) {
-      break;
-    }
-    
+  while (!consume_token(iterator, result, TokenType::END)) {
     auto block_res = block_statement(iterator, result, context);
     if (block_res) {
       root.statements.push_back(block_res.rvalue());
