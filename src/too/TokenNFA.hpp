@@ -8,7 +8,6 @@
 #pragma once
 
 #include "Token.hpp"
-#include "Array.hpp"
 #include "Vector.hpp"
 
 namespace too {
