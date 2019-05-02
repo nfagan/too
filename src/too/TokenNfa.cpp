@@ -148,11 +148,11 @@ too::Vector<int> too::TokenRegex::dfs(const int* starts, const int n_starts) con
 
 struct FromStream {
   template <typename T>
-  static inline std::enable_if_t<std::is_pointer_v<T>, const too::TokenType&> get(const T data, const int64_t at) {
+  static inline std::enable_if_t<std::is_pointer<T>::value, const too::TokenType&> get(const T data, const int64_t at) {
     return data[at].type;
   }
   
-  template <typename T, std::enable_if_t<!std::is_pointer_v<T>, int> = 0>
+  template <typename T, std::enable_if_t<!std::is_pointer<T>::value, int> = 0>
   static inline const too::TokenType& get(const T& iterator, const int64_t at) {
     return iterator.peek(at).type;
   }
