@@ -11,24 +11,24 @@
 #include "Optional.hpp"
 #include "Types.hpp"
 #include <memory>
-#include <iostream>
 
 namespace too {
   enum class TokenType;
   
   namespace ast {
+    class PrettyStringVisitor;
+    
     struct Stmt {
-      virtual String to_string() const = 0;
       virtual ~Stmt() = default;
+      virtual String accept(const PrettyStringVisitor& visitor) const = 0;
     };
     
     struct Expr {
-      virtual String to_string() const = 0;
+      virtual ~Expr() = default;
+      virtual String accept(const PrettyStringVisitor& visitor) const = 0;
       virtual bool is_valid_assignment_target() const {
         return false;
       }
-      
-      virtual ~Expr() = default;
     };
     
     using BoxedExpr = std::unique_ptr<Expr>;
@@ -59,7 +59,7 @@ namespace too {
         return (type_flags & (uint32_t(1) << 2));
       }
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
       
     private:
       uint32_t type_flags;
@@ -69,20 +69,20 @@ namespace too {
       StringView name;
       Optional<TypeParameter> type;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct TraitBoundedType {
       StringView type;
       Vector<TypeParameter> traits;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct WhereClause {
       Vector<TraitBoundedType> types;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct LetStmt : public Stmt {
@@ -105,7 +105,7 @@ namespace too {
       LetStmt() = default;
       ~LetStmt() = default;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct ExprStmt : public Stmt {
@@ -127,7 +127,7 @@ namespace too {
         return *this;
       }
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct BlockStmt : public Stmt {
@@ -145,7 +145,7 @@ namespace too {
         return *this;
       }
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct ReturnStmt : public Stmt {
@@ -165,7 +165,7 @@ namespace too {
         return *this;
       }
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct DefinitionContext {
@@ -195,7 +195,7 @@ namespace too {
                 scope_depth < rhs.scope_depth);
       }
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct NamedDefinitionContext {
@@ -223,7 +223,7 @@ namespace too {
       StringView name;
       Vector<TypeParameter> type_parameters;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct UsingDeclaration {
@@ -232,7 +232,7 @@ namespace too {
       DefinitionContext context;
       StringView in_module;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct FunctionDefinition {
@@ -244,7 +244,7 @@ namespace too {
       
       DefinitionContext context;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct StructDefinition {
@@ -254,7 +254,7 @@ namespace too {
       
       DefinitionContext context;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct TraitDefinition {
@@ -264,7 +264,7 @@ namespace too {
       
       DefinitionContext context;
       
-      String to_string() const;
+      String accept(const PrettyStringVisitor& visitor) const;
     };
     
     struct UnaryExpr : public Expr {
@@ -295,7 +295,7 @@ namespace too {
         return *this;
       }
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct BinaryExpr : public Expr {
@@ -326,7 +326,7 @@ namespace too {
         //
       }
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct IntLiteralExpr : public Expr {
@@ -337,7 +337,7 @@ namespace too {
       IntLiteralExpr() = default;
       ~IntLiteralExpr() = default;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct FloatLiteralExpr : public Expr {
@@ -348,7 +348,7 @@ namespace too {
       FloatLiteralExpr() = default;
       ~FloatLiteralExpr() = default;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct StringLiteralExpr : public Expr {
@@ -359,7 +359,7 @@ namespace too {
       StringLiteralExpr() = default;
       ~StringLiteralExpr() = default;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct IdentifierLiteralExpr : public Expr {
@@ -372,13 +372,13 @@ namespace too {
       
       ~IdentifierLiteralExpr() = default;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
       bool is_valid_assignment_target() const override;
     };
     
     struct AnonymousFunctionLiteralExpr : public Expr {
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
       bool is_valid_assignment_target() const override;
     };
     
@@ -386,7 +386,7 @@ namespace too {
       BlockStmt else_block;
       BoxedExpr else_expression;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct IfExpr : public Expr {
@@ -397,7 +397,7 @@ namespace too {
       Optional<Vector<IfExpr>> else_if_blocks;
       Optional<ElseExpr> else_expression;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct FunctionCallExpr : public Expr {
@@ -412,14 +412,14 @@ namespace too {
         //
       }
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct AnonymousFunctionCallExpr : public Expr {
       BoxedExpr function;
       Vector<BoxedExpr> input_arguments;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
     
     struct ContentsReferenceExpr : public Expr {
@@ -430,7 +430,7 @@ namespace too {
       ContentsReferenceExpr() = default;
       ~ContentsReferenceExpr() = default;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
       bool is_valid_assignment_target() const override;
     };
     
@@ -438,7 +438,7 @@ namespace too {
       BoxedExpr target_expression;
       BoxedExpr assignment_expression;
       
-      String to_string() const override;
+      String accept(const PrettyStringVisitor& visitor) const override;
     };
   }
 }

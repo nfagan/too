@@ -4,22 +4,24 @@
 #include "too/ExternalResolution.hpp"
 #include "too/TokenNfa.hpp"
 #include "too/Optional.hpp"
+#include "too/ast/PrettyStringVisitor.hpp"
 #include <iterator>
 #include <fstream>
 #include <iostream>
 #include <chrono>
 
 namespace {
-  void print_functions(const too::Vector<too::ast::FunctionDefinition>& functions) {
+  void print_functions(const too::ast::PrettyStringVisitor& visitor,
+                       const too::Vector<too::ast::FunctionDefinition>& functions) {
     for (auto i = 0; i < functions.size(); i++) {
-      std::cout << functions[i].context.to_string();
+      std::cout << functions[i].context.accept(visitor);
       
       if (functions[i].context.enclosing_function) {
         const auto& parent_ind = functions[i].context.enclosing_function.value();
-        std::cout << " - Parent:" << functions[parent_ind].header.to_string();
+        std::cout << " - Parent:" << functions[parent_ind].header.accept(visitor);
       }
       
-      std::cout << std::endl << functions[i].to_string() << std::endl;
+      std::cout << std::endl << functions[i].accept(visitor) << std::endl;
     }
   }
   
@@ -28,17 +30,18 @@ namespace {
     std::cout << result.structs.size() << " structs." << std::endl;
     std::cout << result.traits.size() << " traits." << std::endl;
     std::cout << result.external_symbols.size() << " external symbols." << std::endl;
-
-    print_functions(result.functions);
+    
+    too::ast::PrettyStringVisitor visitor;
+    print_functions(visitor, result.functions);
     
     for (auto i = 0; i < result.traits.size(); i++) {
-      std::cout << result.traits[i].context.to_string() << std::endl;
-      std::cout << result.traits[i].to_string() << std::endl;
+      std::cout << result.traits[i].context.accept(visitor) << std::endl;
+      std::cout << result.traits[i].accept(visitor) << std::endl;
     }
     
     for (auto i = 0; i < result.structs.size(); i++) {
-      std::cout << result.structs[i].context.to_string() << std::endl;
-      std::cout << result.structs[i].to_string() << std::endl;
+      std::cout << result.structs[i].context.accept(visitor) << std::endl;
+      std::cout << result.structs[i].accept(visitor) << std::endl;
     }
   }
   

@@ -8,5 +8,5 @@
 #pragma once
 
 #define USE_TOO_STRING_VIEW
-//#define USE_TOO_VECTOR
+#define USE_TOO_VECTOR
 
