@@ -45,7 +45,7 @@ public:
   Character(const Character& other) = default;
   
   explicit Character(char c) {
-    static_assert(std::is_trivially_copyable_v<too::Character>, "Expected class to be trivially copyable.");
+    static_assert(std::is_trivially_copyable<too::Character>::value, "Expected class to be trivially copyable.");
     zero_units();
     units[0] = c;
   }
