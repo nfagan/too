@@ -7,6 +7,7 @@
 
 #include "Scanner.hpp"
 #include <map>
+#include <cassert>
 
 #define BEGIN_NAMESPACE namespace too {
 #define END_NAMESPACE }

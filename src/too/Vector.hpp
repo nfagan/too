@@ -8,12 +8,13 @@
 #pragma once
 
 #include "Config.hpp"
-#include "ArrayAllocator.hpp"
 #include <cstdint>
 #include <cstddef>
+#include <cassert>
 
 #ifdef USE_TOO_VECTOR
 
+#include "ArrayAllocator.hpp"
 #include <utility>
 
 namespace too {
